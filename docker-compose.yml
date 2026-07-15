@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smarttransit-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/smarttransit
+      - REDIS_URL=redis://:secretredispassword@redis:6379
+    depends_on:
+      - mongodb
+      - redis
+
+  mongodb:
+    image: mongo:latest
+    container_name: smarttransit-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  redis:
+    image: redis:alpine
+    container_name: smarttransit-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass secretredispassword
+    volumes:
+      - redis_data:/data
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: smarttransit-mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+    profiles:
+      - dev
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb_data:
+  redis_data:
