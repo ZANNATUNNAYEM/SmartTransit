@@ -1,0 +1,31 @@
+{
+  "id": "1.4",
+  "title": "Auth middleware & route protection",
+  "description": "Central logic to validate tokens and restrict access by role.",
+  "dependencies": [
+    "1.3"
+  ],
+  "estimatedEffort": "2h",
+  "subtasks": [
+    {
+      "id": "1.4.1",
+      "title": "middleware.js edge check",
+      "description": "Verify JWT presence/validity for protected route groups (/admin, /driver, /passenger) and redirect to /login if missing/invalid."
+    },
+    {
+      "id": "1.4.2",
+      "title": "Server-side role guard helper",
+      "description": "Reusable function used inside API route handlers to confirm req user's role matches the required role before proceeding."
+    },
+    {
+      "id": "1.4.3",
+      "title": "Refresh token endpoint",
+      "description": "POST /api/auth/refresh — issues a new access token using a valid refresh token."
+    },
+    {
+      "id": "1.4.4",
+      "title": "Logout endpoint",
+      "description": "POST /api/auth/logout — clears auth cookies."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "1.1",
+  "title": "Build User model",
+  "description": "Mongoose schema supporting all three roles with role-specific fields.",
+  "dependencies": [
+    "0.2"
+  ],
+  "estimatedEffort": "1h",
+  "subtasks": [
+    {
+      "id": "1.1.1",
+      "title": "Define base schema",
+      "description": "Fields: name, email (unique), phone, passwordHash, role (enum: passenger/driver/admin), createdAt."
+    },
+    {
+      "id": "1.1.2",
+      "title": "Define driver-specific subfields",
+      "description": "driverDetails: { licenseNumber, organizationName }, isApproved (default false for drivers, true for passengers/admin), status (pending/active/rejected)."
+    },
+    {
+      "id": "1.1.3",
+      "title": "Add password hashing hook",
+      "description": "Pre-save Mongoose middleware to hash password with bcrypt before storing."
+    }
+  ]
+}

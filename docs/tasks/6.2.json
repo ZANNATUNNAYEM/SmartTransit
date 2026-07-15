@@ -1,0 +1,21 @@
+{
+  "id": "6.2",
+  "title": "ETA adjustment logic",
+  "description": "Combine base ETA (from Member 1's Google Maps integration) with weather severity.",
+  "dependencies": [
+    "6.1"
+  ],
+  "estimatedEffort": "2h",
+  "subtasks": [
+    {
+      "id": "6.2.1",
+      "title": "Define adjustment rules",
+      "description": "e.g. +10% ETA for moderate rain, +25% for heavy rain/storm, no change for clear weather."
+    },
+    {
+      "id": "6.2.2",
+      "title": "GET /api/eta/:busId",
+      "description": "Endpoint returning base ETA + weather-adjusted ETA + condition label, using Member 1's live location data as input."
+    }
+  ]
+}

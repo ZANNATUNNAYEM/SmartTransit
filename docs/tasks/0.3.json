@@ -1,0 +1,31 @@
+{
+  "id": "0.3",
+  "title": "Set up custom server for Socket.io",
+  "description": "Because Next.js serverless API routes can't hold persistent WebSocket connections, wrap Next.js in a custom Node server so Socket.io can attach to the same HTTP server.",
+  "dependencies": [
+    "0.1"
+  ],
+  "estimatedEffort": "2h",
+  "subtasks": [
+    {
+      "id": "0.3.1",
+      "title": "Write server.js",
+      "description": "Create a custom server that initializes Next.js request handling manually instead of using `next dev`/`next start` directly."
+    },
+    {
+      "id": "0.3.2",
+      "title": "Attach Socket.io to HTTP server",
+      "description": "Initialize a Socket.io server instance on the same underlying HTTP server object."
+    },
+    {
+      "id": "0.3.3",
+      "title": "Update package.json scripts",
+      "description": "Change dev/start scripts to run `node server.js` instead of the default Next.js CLI commands."
+    },
+    {
+      "id": "0.3.4",
+      "title": "Decide deployment target",
+      "description": "Confirm with team: VPS or Render/Railway (supports long-running Node process) instead of pure Vercel serverless, since Socket.io needs it."
+    }
+  ]
+}

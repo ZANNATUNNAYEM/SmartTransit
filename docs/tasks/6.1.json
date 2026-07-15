@@ -1,0 +1,21 @@
+{
+  "id": "6.1",
+  "title": "OpenWeather API integration",
+  "description": "Backend service to fetch live weather data.",
+  "dependencies": [
+    "0.1"
+  ],
+  "estimatedEffort": "1.5h",
+  "subtasks": [
+    {
+      "id": "6.1.1",
+      "title": "Weather fetch utility",
+      "description": "lib/weather.js — function to call OpenWeather API by lat/lng and return normalized condition (clear/rain/storm/etc.) + severity."
+    },
+    {
+      "id": "6.1.2",
+      "title": "Caching layer",
+      "description": "Cache weather results per location for a few minutes to avoid excessive API calls."
+    }
+  ]
+}

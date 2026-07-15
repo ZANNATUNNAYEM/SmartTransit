@@ -1,0 +1,26 @@
+{
+  "id": "1.2",
+  "title": "Build registration API route",
+  "description": "POST /api/auth/register — handles both passenger and driver signups.",
+  "dependencies": [
+    "1.1"
+  ],
+  "estimatedEffort": "1.5h",
+  "subtasks": [
+    {
+      "id": "1.2.1",
+      "title": "Input validation",
+      "description": "Validate required fields, email format, password strength, and duplicate email check."
+    },
+    {
+      "id": "1.2.2",
+      "title": "Role-conditional logic",
+      "description": "If role === 'driver', require licenseNumber and organizationName, and set status = 'pending'."
+    },
+    {
+      "id": "1.2.3",
+      "title": "Save user and respond",
+      "description": "Hash password, save document, return sanitized user object (no password hash) with success message."
+    }
+  ]
+}

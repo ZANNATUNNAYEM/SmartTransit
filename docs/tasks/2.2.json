@@ -1,0 +1,32 @@
+{
+  "id": "2.2",
+  "title": "Driver approval queue",
+  "description": "Admin can review and approve/reject pending driver registrations.",
+  "dependencies": [
+    "2.1",
+    "1.1"
+  ],
+  "estimatedEffort": "2h",
+  "subtasks": [
+    {
+      "id": "2.2.1",
+      "title": "GET /api/admin/drivers/pending",
+      "description": "Returns all users with role=driver and status=pending."
+    },
+    {
+      "id": "2.2.2",
+      "title": "PATCH /api/admin/drivers/:id/approve",
+      "description": "Sets isApproved=true, status='active'. Optionally triggers a notification to the driver."
+    },
+    {
+      "id": "2.2.3",
+      "title": "PATCH /api/admin/drivers/:id/reject",
+      "description": "Sets status='rejected' with optional reason field."
+    },
+    {
+      "id": "2.2.4",
+      "title": "Admin UI table",
+      "description": "List pending drivers with license/org details and Approve/Reject buttons."
+    }
+  ]
+}

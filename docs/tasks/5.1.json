@@ -1,0 +1,37 @@
+{
+  "id": "5.1",
+  "title": "Analytics aggregation endpoints",
+  "description": "Backend endpoints computing key metrics from Trip/Bus/Complaint/User data.",
+  "dependencies": [
+    "3.1",
+    "4.1"
+  ],
+  "estimatedEffort": "3h",
+  "subtasks": [
+    {
+      "id": "5.1.1",
+      "title": "Route popularity metric",
+      "description": "Aggregate trip counts per route over a selected date range."
+    },
+    {
+      "id": "5.1.2",
+      "title": "Average delay metric",
+      "description": "Compute average delay (scheduled vs. actual trip times) per route/bus."
+    },
+    {
+      "id": "5.1.3",
+      "title": "Completed trips & bus utilization",
+      "description": "Count completed trips per bus, calculate utilization rate against scheduled trips."
+    },
+    {
+      "id": "5.1.4",
+      "title": "Driver performance summary",
+      "description": "Pull punctuality/delay stats per driver for dashboard display (data likely populated by Member 2's attendance feature — coordinate on schema)."
+    },
+    {
+      "id": "5.1.5",
+      "title": "Peak travel hours",
+      "description": "Aggregate trip/passenger activity by hour-of-day to identify peak windows."
+    }
+  ]
+}

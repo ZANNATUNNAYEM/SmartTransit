@@ -1,0 +1,27 @@
+{
+  "id": "4.3",
+  "title": "Complaint resolution (admin side)",
+  "description": "Admin views, manages, and resolves complaints.",
+  "dependencies": [
+    "4.1",
+    "1.4"
+  ],
+  "estimatedEffort": "2h",
+  "subtasks": [
+    {
+      "id": "4.3.1",
+      "title": "GET /api/admin/complaints",
+      "description": "List all complaints with filters (status, category, date range)."
+    },
+    {
+      "id": "4.3.2",
+      "title": "PATCH /api/admin/complaints/:id",
+      "description": "Update status (open/in-progress/resolved) and add a resolution note."
+    },
+    {
+      "id": "4.3.3",
+      "title": "Admin UI: complaint management table",
+      "description": "Table with filters, status badges, and a detail/resolution modal."
+    }
+  ]
+}

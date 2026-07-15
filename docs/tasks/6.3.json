@@ -1,0 +1,21 @@
+{
+  "id": "6.3",
+  "title": "Weather advisory notifications",
+  "description": "Notify passengers during severe weather.",
+  "dependencies": [
+    "6.1"
+  ],
+  "estimatedEffort": "1.5h",
+  "subtasks": [
+    {
+      "id": "6.3.1",
+      "title": "Advisory trigger logic",
+      "description": "When severity crosses a threshold, generate an advisory message for affected routes."
+    },
+    {
+      "id": "6.3.2",
+      "title": "Send via OneSignal",
+      "description": "Coordinate with Member 2's notification integration to dispatch the advisory (or implement directly if not yet built)."
+    }
+  ]
+}

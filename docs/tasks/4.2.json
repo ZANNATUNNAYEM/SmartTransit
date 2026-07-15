@@ -1,0 +1,22 @@
+{
+  "id": "4.2",
+  "title": "Complaint submission & tracking (passenger side)",
+  "description": "Allow passengers to submit and view status of complaints.",
+  "dependencies": [
+    "4.1",
+    "1.4"
+  ],
+  "estimatedEffort": "1.5h",
+  "subtasks": [
+    {
+      "id": "4.2.1",
+      "title": "POST /api/complaints",
+      "description": "Passenger submits complaint with category, description, and optional related bus/route reference."
+    },
+    {
+      "id": "4.2.2",
+      "title": "GET /api/complaints/mine",
+      "description": "Passenger views their own submitted complaints and current status."
+    }
+  ]
+}

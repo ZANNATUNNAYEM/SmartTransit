@@ -1,0 +1,27 @@
+{
+  "id": "3.4",
+  "title": "Schedule management CRUD",
+  "description": "Admin-only endpoints and UI to manage timetables.",
+  "dependencies": [
+    "3.1",
+    "3.3"
+  ],
+  "estimatedEffort": "2h",
+  "subtasks": [
+    {
+      "id": "3.4.1",
+      "title": "API: CRUD for Schedule",
+      "description": "Create/list/update/delete schedules tied to a route+bus."
+    },
+    {
+      "id": "3.4.2",
+      "title": "Admin UI: schedule table",
+      "description": "List schedules grouped by route, with add/edit departure times."
+    },
+    {
+      "id": "3.4.3",
+      "title": "Data sync validation",
+      "description": "Prevent scheduling a disabled bus or a bus not assigned to the selected route; keep referential integrity across Bus/Route/Schedule."
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "5.3",
+  "title": "Admin UI: analytics dashboard",
+  "description": "Visual dashboard consuming the aggregation endpoints.",
+  "dependencies": [
+    "5.1",
+    "5.2"
+  ],
+  "estimatedEffort": "3h",
+  "subtasks": [
+    {
+      "id": "5.3.1",
+      "title": "Charting setup",
+      "description": "Integrate a charting library (e.g. recharts) for bar/line charts."
+    },
+    {
+      "id": "5.3.2",
+      "title": "Dashboard layout",
+      "description": "Grid of cards/charts: route popularity, delays, utilization, peak hours, driver performance."
+    },
+    {
+      "id": "5.3.3",
+      "title": "Filter controls",
+      "description": "Date range picker + route/driver dropdown filters wired to the API."
+    }
+  ]
+}

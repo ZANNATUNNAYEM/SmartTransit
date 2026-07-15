@@ -1,0 +1,27 @@
+{
+  "id": "1.5",
+  "title": "Frontend auth pages",
+  "description": "Register and login UI, connected to the above APIs.",
+  "dependencies": [
+    "1.2",
+    "1.3"
+  ],
+  "estimatedEffort": "2h",
+  "subtasks": [
+    {
+      "id": "1.5.1",
+      "title": "Registration form",
+      "description": "Form with role toggle (passenger/driver) that conditionally shows license/organization fields for drivers."
+    },
+    {
+      "id": "1.5.2",
+      "title": "Login form",
+      "description": "Simple email/password form with error state handling (invalid credentials, pending approval)."
+    },
+    {
+      "id": "1.5.3",
+      "title": "Auth context/hook",
+      "description": "Client-side useAuth() hook/context to expose current user + role across the app, and handle redirect-after-login by role."
+    }
+  ]
+}

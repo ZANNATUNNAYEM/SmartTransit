@@ -1,0 +1,21 @@
+{
+  "id": "0.4",
+  "title": "Base UI shell",
+  "description": "Set up shared layout, navigation, and role-based routing skeleton so feature pages can be added incrementally.",
+  "dependencies": [
+    "0.1"
+  ],
+  "estimatedEffort": "1.5h",
+  "subtasks": [
+    {
+      "id": "0.4.1",
+      "title": "Root layout + global styles",
+      "description": "Set up app/layout.js with TailwindCSS globals, fonts, and a basic responsive shell."
+    },
+    {
+      "id": "0.4.2",
+      "title": "Placeholder route folders",
+      "description": "Create empty route folders for /login, /register, /passenger, /driver, /admin so structure exists before features are built."
+    }
+  ]
+}

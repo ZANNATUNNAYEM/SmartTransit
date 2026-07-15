@@ -1,0 +1,26 @@
+{
+  "id": "0.2",
+  "title": "Connect MongoDB Atlas with Mongoose",
+  "description": "Set up a cached database connection utility suitable for Next.js serverless/route-handler environment.",
+  "dependencies": [
+    "0.1"
+  ],
+  "estimatedEffort": "1h",
+  "subtasks": [
+    {
+      "id": "0.2.1",
+      "title": "Create MongoDB Atlas cluster",
+      "description": "Set up free-tier cluster, database user, network access (allow all IPs for dev), and get connection string."
+    },
+    {
+      "id": "0.2.2",
+      "title": "Write lib/db.js connection utility",
+      "description": "Implement cached connection pattern (global.mongooseConn) to avoid creating new connections on every serverless invocation."
+    },
+    {
+      "id": "0.2.3",
+      "title": "Test connection",
+      "description": "Create a temporary test API route that connects and returns a success message; verify in browser/Postman."
+    }
+  ]
+}

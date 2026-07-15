@@ -1,0 +1,16 @@
+{
+  "id": "2.1",
+  "title": "Admin dashboard shell",
+  "description": "Protected layout for all admin pages.",
+  "dependencies": [
+    "1.4"
+  ],
+  "estimatedEffort": "1h",
+  "subtasks": [
+    {
+      "id": "2.1.1",
+      "title": "Admin layout with sidebar nav",
+      "description": "Navigation links: Driver Approvals, Buses/Routes/Schedules, Complaints, Analytics, ETA settings."
+    }
+  ]
+}

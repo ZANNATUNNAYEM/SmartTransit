@@ -1,0 +1,32 @@
+{
+  "id": "4.4",
+  "title": "Smart route optimization engine",
+  "description": "Analyze historical data to flag problem routes/buses and suggest optimizations.",
+  "dependencies": [
+    "4.1",
+    "3.1"
+  ],
+  "estimatedEffort": "3h",
+  "subtasks": [
+    {
+      "id": "4.4.1",
+      "title": "Define scoring criteria",
+      "description": "Decide rule-based metrics: e.g. delay frequency per route, complaint count per route/bus, overload signals (capacity vs. reported ridership if available)."
+    },
+    {
+      "id": "4.4.2",
+      "title": "Aggregation query implementation",
+      "description": "MongoDB aggregation pipeline joining Trip/Complaint/Schedule data to compute per-route/per-bus scores."
+    },
+    {
+      "id": "4.4.3",
+      "title": "GET /api/admin/route-optimization",
+      "description": "Endpoint returning ranked list of flagged routes/buses with reasons (e.g. 'high delay frequency', 'high complaint volume')."
+    },
+    {
+      "id": "4.4.4",
+      "title": "Admin UI: recommendations panel",
+      "description": "Card/list view showing flagged routes with supporting stats and suggested action text."
+    }
+  ]
+}

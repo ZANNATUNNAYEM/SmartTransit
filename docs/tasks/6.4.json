@@ -1,0 +1,26 @@
+{
+  "id": "6.4",
+  "title": "Passenger-facing UI",
+  "description": "Display adjusted ETA and advisories on the passenger bus-tracking view.",
+  "dependencies": [
+    "6.2"
+  ],
+  "estimatedEffort": "1h",
+  "subtasks": [
+    {
+      "id": "6.4.1",
+      "title": "Build weather advisory banner component",
+      "description": "Build a weather advisory banner component that displays active warnings/alerts."
+    },
+    {
+      "id": "6.4.2",
+      "title": "Update bus-tracking cards",
+      "description": "Update the bus-tracking cards to show both the base ETA and the weather-adjusted ETA."
+    },
+    {
+      "id": "6.4.3",
+      "title": "Add weather adjustment tooltip/badge",
+      "description": "Add a visual indicator/tooltip describing current weather conditions and the adjustment percentage."
+    }
+  ]
+}

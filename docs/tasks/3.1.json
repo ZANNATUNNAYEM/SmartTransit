@@ -1,0 +1,31 @@
+{
+  "id": "3.1",
+  "title": "Data models: Bus, Route, BusStop, Schedule",
+  "description": "Core entity schemas with relationships.",
+  "dependencies": [
+    "0.2"
+  ],
+  "estimatedEffort": "2h",
+  "subtasks": [
+    {
+      "id": "3.1.1",
+      "title": "BusStop schema",
+      "description": "name, location {type: Point, coordinates}, with 2dsphere index for geo queries."
+    },
+    {
+      "id": "3.1.2",
+      "title": "Route schema",
+      "description": "name, stops: [ObjectId ref BusStop] (ordered array), distance, estimatedDuration."
+    },
+    {
+      "id": "3.1.3",
+      "title": "Bus schema",
+      "description": "busNumber, capacity, routeId (ref Route), driverId (ref User), status (active/disabled/maintenance), currentLocation."
+    },
+    {
+      "id": "3.1.4",
+      "title": "Schedule schema",
+      "description": "routeId, busId, departureTimes: [String], frequencyMinutes."
+    }
+  ]
+}

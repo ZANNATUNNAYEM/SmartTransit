@@ -1,0 +1,26 @@
+{
+  "id": "1.3",
+  "title": "Build login API route",
+  "description": "POST /api/auth/login — authenticates and issues JWTs.",
+  "dependencies": [
+    "1.1"
+  ],
+  "estimatedEffort": "1.5h",
+  "subtasks": [
+    {
+      "id": "1.3.1",
+      "title": "Credential verification",
+      "description": "Look up user by email, compare password with bcrypt."
+    },
+    {
+      "id": "1.3.2",
+      "title": "Block unapproved drivers",
+      "description": "If role === 'driver' and isApproved === false, reject login with a clear pending-approval message."
+    },
+    {
+      "id": "1.3.3",
+      "title": "Issue JWT tokens",
+      "description": "Generate short-lived access token and longer-lived refresh token, embed userId + role in payload, set as httpOnly cookies."
+    }
+  ]
+}

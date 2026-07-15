@@ -1,0 +1,31 @@
+{
+  "id": "5.2",
+  "title": "Filtering support",
+  "description": "Allow analytics queries to be filtered by date range, route, or driver.",
+  "dependencies": [
+    "5.1"
+  ],
+  "estimatedEffort": "1h",
+  "subtasks": [
+    {
+      "id": "5.2.1",
+      "title": "Parse date range queries",
+      "description": "Add support for parsing date range queries (startDate, endDate) in the aggregation endpoints."
+    },
+    {
+      "id": "5.2.2",
+      "title": "Integrate route-based filtering",
+      "description": "Integrate route-based filtering into the analytics pipelines."
+    },
+    {
+      "id": "5.2.3",
+      "title": "Integrate driver-based filtering",
+      "description": "Integrate driver-based filtering into the analytics pipelines."
+    },
+    {
+      "id": "5.2.4",
+      "title": "Implement filter query validation",
+      "description": "Implement validation for query parameters to prevent database errors."
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "3.2",
+  "title": "Bus management CRUD",
+  "description": "Admin-only endpoints and UI to manage buses.",
+  "dependencies": [
+    "3.1",
+    "1.4"
+  ],
+  "estimatedEffort": "2.5h",
+  "subtasks": [
+    {
+      "id": "3.2.1",
+      "title": "API: create/list/update/delete bus",
+      "description": "POST, GET, PATCH, DELETE /api/admin/buses — all guarded by admin role check."
+    },
+    {
+      "id": "3.2.2",
+      "title": "Disable/enable bus toggle",
+      "description": "PATCH endpoint to flip status between active/disabled without deleting the record."
+    },
+    {
+      "id": "3.2.3",
+      "title": "Assign driver to bus",
+      "description": "PATCH endpoint + UI dropdown to set/change driverId on a bus (only approved drivers selectable)."
+    },
+    {
+      "id": "3.2.4",
+      "title": "Admin UI: bus table + form",
+      "description": "Table listing all buses with status badges, edit modal/form for create/update."
+    }
+  ]
+}

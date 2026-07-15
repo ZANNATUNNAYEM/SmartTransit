@@ -1,0 +1,32 @@
+{
+  "id": "3.3",
+  "title": "Route & bus stop management CRUD",
+  "description": "Admin-only endpoints and UI to manage routes and stops.",
+  "dependencies": [
+    "3.1",
+    "1.4"
+  ],
+  "estimatedEffort": "2.5h",
+  "subtasks": [
+    {
+      "id": "3.3.1",
+      "title": "API: CRUD for BusStop",
+      "description": "Create/list/update/delete stops, each with lat/lng (ideally picked on a map in the UI)."
+    },
+    {
+      "id": "3.3.2",
+      "title": "API: CRUD for Route",
+      "description": "Create/list/update/delete routes; support reordering the stops array."
+    },
+    {
+      "id": "3.3.3",
+      "title": "Assign bus(es) to route",
+      "description": "PATCH endpoint to link a bus's routeId; UI dropdown in the bus form."
+    },
+    {
+      "id": "3.3.4",
+      "title": "Admin UI: route builder",
+      "description": "Form to name a route and add/reorder/remove stops from it."
+    }
+  ]
+}
