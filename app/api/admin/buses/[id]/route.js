@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { verifyAdmin } from '@/lib/auth';
-import { Bus } from '@/models';
+import { Bus, User } from '@/models';
 
 export async function GET(request, context) {
   try {
@@ -48,7 +48,15 @@ export async function PATCH(request, context) {
     if (busNumber !== undefined) bus.busNumber = busNumber.trim();
     if (capacity !== undefined) bus.capacity = capacity;
     if (routeId !== undefined) bus.routeId = routeId || null;
-    if (driverId !== undefined) bus.driverId = driverId || null;
+    if (driverId !== undefined) {
+      if (driverId) {
+        const driver = await User.findById(driverId);
+        if (!driver || driver.role !== 'driver' || !driver.isApproved) {
+          return NextResponse.json({ error: 'Only approved drivers can be assigned to a bus' }, { status: 400 });
+        }
+      }
+      bus.driverId = driverId || null;
+    }
     if (status !== undefined) bus.status = status;
     if (currentLocation !== undefined) bus.currentLocation = currentLocation;
 
