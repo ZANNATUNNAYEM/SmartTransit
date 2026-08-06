@@ -22,8 +22,8 @@ export async function PATCH(request, context) {
 
     if (driverId) {
       const driver = await User.findById(driverId);
-      if (!driver || driver.role !== 'driver') {
-        return NextResponse.json({ error: 'Valid driverId is required' }, { status: 400 });
+      if (!driver || driver.role !== 'driver' || !driver.isApproved) {
+        return NextResponse.json({ error: 'Only approved drivers can be assigned to a bus' }, { status: 400 });
       }
     }
 

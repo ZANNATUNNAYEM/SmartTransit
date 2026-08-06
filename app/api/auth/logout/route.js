@@ -28,6 +28,11 @@ export async function POST() {
     path: '/api/auth',
   });
 
+  response.cookies.set('admin_session', '', {
+    ...cookieOptions,
+    path: '/',
+  });
+
   response.headers.set('Cache-Control', 'no-store');
 
   return response;
