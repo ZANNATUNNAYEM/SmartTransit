@@ -1,6 +1,10 @@
 const { createServer } = require('http');
 const next = require('next');
 const { Server } = require('socket.io');
+const dns = require('dns');
+
+// Force Google DNS for Atlas SRV resolution to prevent querySrv ECONNREFUSED error
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
