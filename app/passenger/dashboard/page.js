@@ -3,7 +3,15 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import MapView from '@/components/MapView';
+import dynamic from 'next/dynamic';
+
+const MapView = dynamic(
+  () => import('@/components/MapView'),
+  {
+    ssr: false,
+  }
+);
+
 function getInitials(name) {
   if (!name) {
     return 'P';
@@ -40,7 +48,8 @@ export default function PassengerDashboardPage() {
   const [nearbyStops, setNearbyStops] = useState([]);
 
   const [isFindingStops, setIsFindingStops] = useState(false);
-
+  const [liveBus, setLiveBus] = useState(null);
+  const [isLoadingLiveBus, setIsLoadingLiveBus] = useState(true);
   useEffect(() => {
     async function loadUser() {
       try {
@@ -97,6 +106,7 @@ export default function PassengerDashboardPage() {
 
         setUser(data.user);
         await loadFavorites();
+        await loadLiveBus();
       } catch (requestError) {
 
         console.error(
@@ -120,6 +130,63 @@ export default function PassengerDashboardPage() {
     loadUser();
 
   }, [router]);
+
+  async function loadLiveBus() {
+
+    try {
+
+      const response =
+        await fetch(
+          '/api/passenger/bus-location',
+          {
+            cache:'no-store',
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(response.ok){
+
+        setLiveBus(
+          data.bus
+        );
+
+      }
+
+
+    } catch(error){
+
+      console.error(
+        'Live bus loading failed:',
+        error
+      );
+
+    } finally {
+
+      setIsLoadingLiveBus(false);
+
+    }
+
+  }
+
+  useEffect(() => {
+
+    const interval =
+      setInterval(
+        loadLiveBus,
+        10000
+      );
+
+
+    return () =>
+      clearInterval(interval);
+
+
+  }, []);
+
 
   async function loadETA(busId) {
     try {
@@ -504,7 +571,6 @@ export default function PassengerDashboardPage() {
 
       <section className="mx-auto w-full max-w-screen-2xl px-6 py-10">
 
-
         <div className="flex flex-col items-center gap-6 rounded-2xl bg-gradient-to-r from-blue-700 to-blue-500 p-8 text-center text-white shadow-lg sm:flex-row sm:text-left">
 
 
@@ -552,10 +618,6 @@ export default function PassengerDashboardPage() {
 
 
         </div>
-
-
-
-
 
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
@@ -820,8 +882,10 @@ export default function PassengerDashboardPage() {
 
         </div>
 
+
         {searchResults && (
 
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <section className="mt-8 w-full rounded-2xl bg-white p-6 shadow-sm">
 
 
@@ -980,39 +1044,83 @@ export default function PassengerDashboardPage() {
         </div>
 
 
-
-
-
-        {/* Right Side - Map Placeholder */}
-
-        <div className="overflow-hidden rounded-xl">
-
-          <MapView
-
-            busLocation={
-              searchResults.buses[0]?.currentLocation
-            }
-
-            busId={
-              searchResults.buses[0]?._id
-            }
-
-            stops={
-              searchResults.routes[0]?.stops || []
-            }
-
-          />
-
         </div>
 
 
 
-        </div>
-
-
-
+        
         </section>
+        <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
 
+          <h3 className="text-xl font-bold text-slate-900">
+            🚌 Live Bus Tracking
+          </h3>
+
+          {isLoadingLiveBus ? (
+
+            <p className="mt-4 text-sm text-slate-500">
+              Loading live location...
+            </p>
+
+          ) : liveBus ? (
+
+            <div className="mt-5">
+
+              <div className="mb-4 grid gap-3 sm:grid-cols-3">
+
+                <div className="rounded-lg bg-blue-50 p-4">
+                  <p className="text-sm text-slate-500">
+                    Bus Number
+                  </p>
+
+                  <p className="font-bold text-slate-900">
+                    {liveBus.busNumber}
+                  </p>
+                </div>
+
+
+                <div className="rounded-lg bg-green-50 p-4">
+                  <p className="text-sm text-slate-500">
+                    Status
+                  </p>
+
+                  <p className="font-bold capitalize text-slate-900">
+                    {liveBus.status}
+                  </p>
+                </div>
+
+
+                <div className="rounded-lg bg-purple-50 p-4">
+                  <p className="text-sm text-slate-500">
+                    Tracking
+                  </p>
+
+                  <p className="font-bold text-green-700">
+                    Live
+                  </p>
+                </div>
+
+              </div>
+
+
+              <MapView
+                busLocation={liveBus.currentLocation}
+                busId={liveBus._id}
+                stops={[]}
+              />
+
+            </div>
+
+          ) : (
+
+            <p className="mt-4 text-sm text-slate-500">
+              No live bus available.
+            </p>
+
+          )}
+
+        </article>        
+        </div>
         )}
 
 
