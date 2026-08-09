@@ -6,16 +6,16 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: smarttransit-app
+    env_file:
+      - .env.local
     restart: always
     ports:
-      - "1681:3000"
+      - "3000:3000"
     environment:
       - PORT=3000
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/smarttransit
       - REDIS_URL=redis://:secretredispassword@redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
     depends_on:
       - mongodb
       - redis
