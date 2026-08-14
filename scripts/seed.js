@@ -56,6 +56,12 @@ async function seed() {
     'passenger123',
     10
   );
+
+  const verifiedUserDefaults = {
+    emailVerifiedAt: new Date(),
+    isEmailVerified: true
+  };
+
   const users = await User.insertMany([
     {
       name: 'Super Admin',
@@ -64,7 +70,9 @@ async function seed() {
       password: adminPassword,
       role: 'admin',
       isApproved: true,
-      status: 'active'
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      isEmailVerified: true
     },
     {
       name: 'Rahim Uddin',
@@ -77,7 +85,9 @@ async function seed() {
         orgName: 'Dhaka Chaka Ltd'
       },
       isApproved: true,
-      status: 'active'
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      isEmailVerified: true
     },
     {
       name: 'Karim Ali',
@@ -99,7 +109,9 @@ async function seed() {
       password: passengerPassword,
       role: 'passenger',
       isApproved: true,
-      status: 'active'
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      isEmailVerified: true      
     },
     {
       name: 'Maimuna Passenger',
@@ -108,7 +120,9 @@ async function seed() {
       password: passengerPassword,
       role: 'passenger',
       isApproved: true,
-      status: 'active'
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      isEmailVerified: true
     }
   ]);
   const admin = users[0];
