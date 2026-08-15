@@ -35,7 +35,7 @@ const BusSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'disabled'],
+      enum: ['active', 'disabled',  'delayed',  'maintenance',  'breakdown'],
       default: 'active',
     },
     currentLocation: {
