@@ -36,6 +36,17 @@ export default function PassengerDashboardPage() {
   // Smart Route Planning states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [isLoadingRecentSearches, setIsLoadingRecentSearches] = useState(false);
+  const [travelHistory, setTravelHistory] = useState([]);
+  const [isLoadingTravelHistory, setIsLoadingTravelHistory] = useState(false); 
+  const [frequentDestinations, setFrequentDestinations] = useState([]);
+  const [isLoadingFrequentDestinations, setIsLoadingFrequentDestinations] = useState(false);
+  const [travelSuggestions, setTravelSuggestions] = useState([]);
+  const [isLoadingTravelSuggestions, setIsLoadingTravelSuggestions] = useState(false);
+  const [fromStopId, setFromStopId] = useState('');
+  const [toStopId, setToStopId] = useState('');
+  const [isStartingJourney, setIsStartingJourney] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
   const [favorites, setFavorites] = useState({
@@ -107,6 +118,10 @@ export default function PassengerDashboardPage() {
         setUser(data.user);
         await loadFavorites();
         await loadLiveBus();
+        await loadRecentSearches();
+        await loadTravelHistory();
+        await loadFrequentDestinations();
+        await loadTravelSuggestions();
       } catch (requestError) {
 
         console.error(
@@ -130,7 +145,138 @@ export default function PassengerDashboardPage() {
     loadUser();
 
   }, [router]);
+  async function loadRecentSearches() {
+    try {
+      setIsLoadingRecentSearches(true);
 
+      const response = await fetch(
+        '/api/passenger/recent-searches',
+        {
+          cache: 'no-store',
+          credentials: 'include',
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setRecentSearches(
+          data.recentSearches || []
+        );
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Recent searches error:',
+        error
+      );
+
+    } finally {
+
+      setIsLoadingRecentSearches(false);
+
+    }
+  }
+  async function loadTravelHistory() {
+    try {
+      setIsLoadingTravelHistory(true);
+
+      const response = await fetch(
+        '/api/passenger/journeys',
+        {
+          cache: 'no-store',
+          credentials: 'include',
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setTravelHistory(
+          data.journeys || []
+        );
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Travel history error:',
+        error
+      );
+
+    } finally {
+
+      setIsLoadingTravelHistory(false);
+
+    }
+  }
+  async function loadFrequentDestinations() {
+    try {
+      setIsLoadingFrequentDestinations(true);
+
+      const response = await fetch(
+        '/api/passenger/frequent-destinations',
+        {
+          cache: 'no-store',
+          credentials: 'include',
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setFrequentDestinations(
+          data.destinations || []
+        );
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Frequent destinations error:',
+        error
+      );
+
+    } finally {
+
+      setIsLoadingFrequentDestinations(false);
+
+    }
+  }
+  async function loadTravelSuggestions() {
+    try {
+      setIsLoadingTravelSuggestions(true);
+
+      const response = await fetch(
+        '/api/passenger/travel-suggestions',
+        {
+          cache: 'no-store',
+          credentials: 'include',
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setTravelSuggestions(
+          data.suggestions || []
+        );
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Travel suggestions error:',
+        error
+      );
+
+    } finally {
+
+      setIsLoadingTravelSuggestions(false);
+
+    }
+  }
   async function loadLiveBus() {
 
     try {
@@ -270,7 +416,77 @@ export default function PassengerDashboardPage() {
     }
 
   }
+  async function startJourney() {
+    if (!searchResults?.buses?.length) {
+      return;
+    }
 
+    if (!fromStopId || !toStopId) {
+      alert('Please select both your starting stop and destination.');
+      return;
+    }
+
+    if (fromStopId === toStopId) {
+      alert('Starting stop and destination cannot be the same.');
+      return;
+    }
+
+    try {
+      setIsStartingJourney(true);
+
+      const bus = searchResults.buses[0];
+
+      const response = await fetch(
+        '/api/passenger/journeys',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            busId: bus._id,
+            routeId: bus.routeId?._id,
+            fromStopId,
+            toStopId,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(
+          data.error ||
+          'Unable to start journey.'
+        );
+        return;
+      }
+
+      await loadTravelHistory();
+
+      setFromStopId('');
+      setToStopId('');
+
+      alert('Journey started successfully.');
+
+    } catch (error) {
+
+      console.error(
+        'Starting journey failed:',
+        error
+      );
+
+      alert(
+        'Unable to start journey. Please try again.'
+      );
+
+    } finally {
+
+      setIsStartingJourney(false);
+
+    }
+  }
   async function findNearbyStops() {
 
     if (typeof window === 'undefined') {
@@ -749,26 +965,17 @@ export default function PassengerDashboardPage() {
           </article>
 
 
-
-
-
-
           <article className="rounded-2xl bg-white p-6 shadow-sm">
-
 
             <h3 className="text-lg font-bold text-slate-900">
               Search transportation
             </h3>
 
-
             <p className="mt-3 text-sm leading-6 text-slate-600">
               Search buses, routes, destinations, and nearby bus stops.
             </p>
 
-
-
             <div className="mt-5 flex gap-3">
-
 
               <input
                 type="text"
@@ -780,25 +987,77 @@ export default function PassengerDashboardPage() {
                 className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-blue-500"
               />
 
-
-
               <button
                 type="button"
                 onClick={handleSearch}
                 disabled={isSearching}
                 className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
               >
-
                 {isSearching
                   ? 'Searching...'
                   : 'Search'}
-
               </button>
-
 
             </div>
 
 
+            {/* Recent Searches */}
+
+            <div className="mt-6 border-t border-slate-200 pt-5">
+
+              <h4 className="text-base font-bold text-slate-900">
+                🕘 Recent Searches
+              </h4>
+
+              {isLoadingRecentSearches ? (
+
+                <p className="mt-3 text-sm text-slate-500">
+                  Loading recent searches...
+                </p>
+
+              ) : recentSearches.length > 0 ? (
+
+                <div className="mt-3 space-y-2">
+
+                  {recentSearches.map((search) => (
+
+                    <div
+                      key={`${search.busId?._id}-${search.searchedAt}`}
+                      className="rounded-lg bg-slate-50 p-3"
+                    >
+
+                      <p className="font-semibold text-slate-900">
+                        🚌 {search.busId?.busNumber || 'Bus'}
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-600">
+                        🛣 {search.busId?.routeId?.name ||
+                          'Route information unavailable'}
+                      </p>
+
+                      {search.busId?.routeId?.distance !== undefined && (
+                        <p className="mt-1 text-xs text-slate-500">
+                          📏 {search.busId.routeId.distance} km
+                          {' • '}
+                          ⏱ {search.busId.routeId.estimatedDuration} min
+                        </p>
+                      )}
+
+                    </div>
+
+                  ))}
+
+                </div>
+
+              ) : (
+
+                <p className="mt-3 text-sm text-slate-500">
+                  No recent searches yet.
+                </p>
+
+              )}
+
+            </div>
 
           </article>
 
@@ -940,7 +1199,96 @@ export default function PassengerDashboardPage() {
         <strong>Driver:</strong>{" "}
         {searchResults.buses[0].driverId?.name}
         </p>
+        <div className="mt-5 border-t border-slate-200 pt-5">
 
+          <h5 className="font-semibold text-slate-900">
+            🧳 Start Journey
+          </h5>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
+            <div>
+              <label
+                htmlFor="from-stop"
+                className="block text-sm font-medium text-slate-700"
+              >
+                From Stop
+              </label>
+
+              <select
+                id="from-stop"
+                value={fromStopId}
+                onChange={(event) =>
+                  setFromStopId(event.target.value)
+                }
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="">
+                  Select starting stop
+                </option>
+
+                {searchResults.buses[0].routeId?.stops?.map(
+                  (stop) => (
+                    <option
+                      key={stop._id}
+                      value={stop._id}
+                    >
+                      {stop.name}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+
+
+            <div>
+              <label
+                htmlFor="to-stop"
+                className="block text-sm font-medium text-slate-700"
+              >
+                To Stop
+              </label>
+
+              <select
+                id="to-stop"
+                value={toStopId}
+                onChange={(event) =>
+                  setToStopId(event.target.value)
+                }
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="">
+                  Select destination
+                </option>
+
+                {searchResults.buses[0].routeId?.stops?.map(
+                  (stop) => (
+                    <option
+                      key={stop._id}
+                      value={stop._id}
+                    >
+                      {stop.name}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+
+          </div>
+
+
+          <button
+            type="button"
+            onClick={startJourney}
+            disabled={isStartingJourney}
+            className="mt-4 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isStartingJourney
+              ? 'Starting Journey...'
+              : 'Start Journey'}
+          </button>
+
+        </div>
 
         </div>
 
@@ -1121,10 +1469,234 @@ export default function PassengerDashboardPage() {
 
         </article>        
         </div>
+
         )}
+        <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
 
+          <h3 className="text-xl font-bold text-slate-900">
+            🧳 Travel History
+          </h3>
 
+          {isLoadingTravelHistory ? (
 
+            <p className="mt-4 text-sm text-slate-500">
+              Loading travel history...
+            </p>
+
+          ) : travelHistory.length > 0 ? (
+
+            <div className="mt-5 space-y-3">
+
+              {travelHistory.map((journey) => (
+
+                <div
+                  key={journey._id}
+                  className="rounded-xl border border-slate-200 p-4"
+                >
+
+                  <div className="flex items-start justify-between gap-4">
+
+                    <div>
+
+                      <p className="font-semibold text-slate-900">
+                        🚌 {journey.busId?.busNumber || 'Bus'}
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-600">
+                        🛣 {journey.routeId?.name ||
+                          'Route information unavailable'}
+                      </p>
+
+                    </div>
+
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                      {journey.status}
+                    </span>
+
+                  </div>
+
+                  <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+
+                    <p>
+                      📍 From:{' '}
+                      {journey.fromStopId?.name ||
+                        'Not specified'}
+                    </p>
+
+                    <p>
+                      📍 To:{' '}
+                      {journey.toStopId?.name ||
+                        'Not specified'}
+                    </p>
+
+                  </div>
+
+                  <p className="mt-3 text-xs text-slate-400">
+                    🕘{' '}
+                    {journey.journeyDate
+                      ? new Date(
+                          journey.journeyDate
+                        ).toLocaleString()
+                      : 'Date unavailable'}
+                  </p>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          ) : (
+
+            <p className="mt-4 text-sm text-slate-500">
+              No travel history yet.
+            </p>
+
+          )}
+
+        </article>
+
+        <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+
+          <h3 className="text-xl font-bold text-slate-900">
+            📍 Frequently Visited Destinations
+          </h3>
+
+          {isLoadingFrequentDestinations ? (
+
+            <p className="mt-4 text-sm text-slate-500">
+              Loading destinations...
+            </p>
+
+          ) : frequentDestinations.length > 0 ? (
+
+            <div className="mt-5 space-y-3">
+
+              {frequentDestinations.map(
+                (destination) => (
+
+                  <div
+                    key={destination.stopId}
+                    className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
+                  >
+
+                    <div>
+
+                      <p className="font-semibold text-slate-900">
+                        📍 {destination.name}
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        Frequently visited destination
+                      </p>
+
+                    </div>
+
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                      {destination.visitCount}{' '}
+                      {destination.visitCount === 1
+                        ? 'visit'
+                        : 'visits'}
+                    </span>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          ) : (
+
+            <p className="mt-4 text-sm text-slate-500">
+              No frequently visited destinations yet.
+            </p>
+
+          )}
+
+        </article>
+        <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+
+          <h3 className="text-xl font-bold text-slate-900">
+            💡 Recommended for You
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-600">
+            Personalized travel suggestions based on your previous journeys and saved preferences.
+          </p>
+
+          {isLoadingTravelSuggestions ? (
+
+            <p className="mt-4 text-sm text-slate-500">
+              Finding recommendations...
+            </p>
+
+          ) : travelSuggestions.length > 0 ? (
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+
+              {travelSuggestions.map((suggestion) => (
+
+                <div
+                  key={`${suggestion.type}-${suggestion.routeId || suggestion.stopId}`}
+                  className="rounded-xl border border-slate-200 p-4"
+                >
+
+                  <div className="flex items-start justify-between gap-3">
+
+                    <div>
+
+                      <p className="font-semibold text-slate-900">
+                        {suggestion.type === 'recent-route'
+                          ? '🚌'
+                          : suggestion.type === 'frequent-destination'
+                          ? '📍'
+                          : suggestion.type === 'favorite-route'
+                          ? '⭐'
+                          : '🚏'}{' '}
+                        {suggestion.title}
+                      </p>
+
+                      <p className="mt-2 text-sm text-slate-600">
+                        {suggestion.description}
+                      </p>
+
+                      <div className="mt-3">
+
+                        <p className="text-xs font-medium text-slate-500">
+                          Recommended because:
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-600">
+                          {suggestion.reason}
+                        </p>
+
+                      </div>
+                      {suggestion.score >= 120 && (
+                        <span className="mt-3 inline-block rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+                          Highly recommended
+                        </span>
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          ) : (
+
+            <p className="mt-4 text-sm text-slate-500">
+              No travel suggestions available yet.
+            </p>
+
+          )}
+
+        </article>
       </section>
 
 
