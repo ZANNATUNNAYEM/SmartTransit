@@ -21,6 +21,30 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Analytics Dashboard states
+  const [analyticsStartDate, setAnalyticsStartDate] = useState('');
+  const [analyticsEndDate, setAnalyticsEndDate] = useState('');
+  const [analyticsRouteFilter, setAnalyticsRouteFilter] = useState('');
+  const [analyticsDriverFilter, setAnalyticsDriverFilter] = useState('');
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  
+  // Fetch result states
+  const [routePopularity, setRoutePopularity] = useState([]);
+  const [averageDelays, setAverageDelays] = useState([]);
+  const [completedTrips, setCompletedTrips] = useState([]);
+  const [completedTripsGroup, setCompletedTripsGroup] = useState('route'); // 'route' | 'bus' | 'driver'
+  const [busUtilization, setBusUtilization] = useState([]);
+  const [driverPerformance, setDriverPerformance] = useState([]);
+  const [peakHours, setPeakHours] = useState([]);
+  
+  // Search query states
+  const [driverSearchQuery, setDriverSearchQuery] = useState('');
+  const [busSearchQuery, setBusSearchQuery] = useState('');
+
+  // Fleet Management sub-tab view state
+  const [fleetSubView, setFleetSubView] = useState('buses'); // 'buses' | 'routes' | 'drivers' | 'trips'
+  const [trips, setTrips] = useState([]);
+
   // Requests page states
   const [requestFilter, setRequestFilter] = useState('pending'); // 'pending' or 'all'
 
@@ -126,6 +150,76 @@ export default function AdminDashboardPage() {
       setIsLoading(false);
     }
   }
+
+  async function fetchAnalyticsData() {
+    setAnalyticsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (analyticsStartDate) params.append('startDate', analyticsStartDate);
+      if (analyticsEndDate) params.append('endDate', analyticsEndDate);
+      
+      const paramStr = params.toString() ? `?${params.toString()}` : '';
+
+      const [resPop, resDelays, resCompleted, resUtilization, resPerformance, resPeak] = await Promise.all([
+        fetch(`/api/admin/analytics/route-popularity${paramStr}`),
+        fetch(`/api/admin/analytics/average-delay${paramStr}`),
+        fetch(`/api/admin/analytics/completed-trips${paramStr}${paramStr ? '&' : '?'}groupBy=${completedTripsGroup}`),
+        fetch(`/api/admin/analytics/bus-utilization${paramStr}`),
+        fetch(`/api/admin/analytics/driver-performance${paramStr}`),
+        fetch(`/api/admin/analytics/peak-hours${paramStr}`)
+      ]);
+
+      if (resPop.ok) setRoutePopularity(await resPop.json());
+      if (resDelays.ok) setAverageDelays(await resDelays.json());
+      if (resCompleted.ok) setCompletedTrips(await resCompleted.json());
+      if (resUtilization.ok) setBusUtilization(await resUtilization.json());
+      if (resPerformance.ok) setDriverPerformance(await resPerformance.json());
+      if (resPeak.ok) setPeakHours(await resPeak.json());
+
+    } catch (err) {
+      console.error('Error fetching analytics data:', err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'Analytics') {
+      fetchAnalyticsData();
+    }
+  }, [activeTab, analyticsStartDate, analyticsEndDate]);
+
+  useEffect(() => {
+    if (activeTab === 'Analytics') {
+      const fetchCompletedOnly = async () => {
+        try {
+          const params = new URLSearchParams();
+          if (analyticsStartDate) params.append('startDate', analyticsStartDate);
+          if (analyticsEndDate) params.append('endDate', analyticsEndDate);
+          params.append('groupBy', completedTripsGroup);
+          const res = await fetch(`/api/admin/analytics/completed-trips?${params.toString()}`);
+          if (res.ok) setCompletedTrips(await res.json());
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchCompletedOnly();
+    }
+  }, [completedTripsGroup]);
+
+  useEffect(() => {
+    if (activeTab === 'Fleet Management' && fleetSubView === 'trips') {
+      const fetchTrips = async () => {
+        try {
+          const res = await fetch('/api/admin/trips');
+          if (res.ok) setTrips(await res.json());
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchTrips();
+    }
+  }, [activeTab, fleetSubView]);
 
   useEffect(() => {
     fetchAllData();
@@ -342,6 +436,24 @@ export default function AdminDashboardPage() {
     }
   }
 
+  // Handle route deletion
+  async function deleteRoute(routeId) {
+    if (!confirm('Are you sure you want to delete this route?')) return;
+    try {
+      const res = await fetch(`/api/admin/routes/${routeId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setRoutes(prev => prev.filter(r => r._id !== routeId));
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete route');
+      }
+    } catch (err) {
+      console.error('Error deleting route:', err);
+    }
+  }
+
   // Submit Bus Creation Form
   async function handleCreateBus(e) {
     e.preventDefault();
@@ -505,7 +617,7 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans antialiased selection:bg-blue-500 selection:text-white">
       
       {/* LEFT SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0">
+      <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0 print:hidden">
         <div>
           {/* Logo Brand Header */}
           <div className="px-6 py-6 border-b border-slate-100">
@@ -574,7 +686,7 @@ export default function AdminDashboardPage() {
       <div className="flex-1 flex flex-col min-w-0">
         
         {/* TOP BAR / NAVIGATION */}
-        <header className="h-20 bg-white border-b border-slate-200/80 flex items-center justify-between px-8 shrink-0">
+        <header className="h-20 bg-white border-b border-slate-200/80 flex items-center justify-between px-8 shrink-0 print:hidden">
           {/* Global Search */}
           <div className="w-96 relative">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -911,90 +1023,289 @@ export default function AdminDashboardPage() {
               {/* Stat Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                  { title: 'Total Buses', value: stats?.totalBuses || buses.length, change: '+3% this month', icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z', iconColor: 'text-blue-500 bg-blue-50' },
-                  { title: 'Active Routes', value: stats?.totalRoutes || routes.length, change: 'Stable', icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3', iconColor: 'text-orange-500 bg-orange-50' },
-                  { title: 'Drivers Allocated', value: drivers.filter(d => d.isApproved).length, change: '98% Utilization', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', iconColor: 'text-slate-500 bg-slate-50' },
-                  { title: 'Today\'s Trips', value: stats?.totalTrips || '624', change: '+12 since 6AM', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', iconColor: 'text-emerald-500 bg-emerald-50' }
-                ].map((stat, idx) => (
-                  <div key={idx} className="bg-white border border-slate-200/80 rounded-2xl p-6 flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-semibold text-slate-400">{stat.title}</span>
-                      <p className="text-3xl font-extrabold text-slate-900 mt-2">{stat.value}</p>
-                      <span className="text-xs font-bold text-emerald-500 mt-1 block">
-                        {stat.change}
-                      </span>
-                    </div>
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.iconColor}`}>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
-                      </svg>
-                    </div>
-                  </div>
-                ))}
+                  { id: 'buses', title: 'Total Buses', value: stats?.totalBuses || buses.length, change: '+3% this month', icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z', iconColor: 'text-blue-500 bg-blue-50', activeStyle: 'ring-2 ring-blue-500/80 bg-blue-50/10 border-blue-200' },
+                  { id: 'routes', title: 'Active Routes', value: stats?.totalRoutes || routes.length, change: 'Stable', icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3', iconColor: 'text-orange-500 bg-orange-50', activeStyle: 'ring-2 ring-orange-500/80 bg-orange-50/10 border-orange-200' },
+                  { id: 'drivers', title: 'Drivers Allocated', value: drivers.filter(d => d.isApproved).length, change: '98% Utilization', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', iconColor: 'text-slate-500 bg-slate-50', activeStyle: 'ring-2 ring-slate-500/80 bg-slate-50/10 border-slate-200' },
+                  { id: 'trips', title: 'Today\'s Trips', value: stats?.totalTrips || '624', change: '+12 since 6AM', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', iconColor: 'text-emerald-500 bg-emerald-50', activeStyle: 'ring-2 ring-emerald-500/80 bg-emerald-50/10 border-emerald-200' }
+                ].map((stat, idx) => {
+                  const isSelectable = ['buses', 'routes', 'drivers', 'trips'].includes(stat.id);
+                  const isActive = fleetSubView === stat.id;
+                  
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => isSelectable && setFleetSubView(stat.id)}
+                      disabled={!isSelectable}
+                      className={`text-left bg-white border border-slate-200/80 rounded-2xl p-6 flex items-center justify-between transition-all duration-200 ${
+                        isSelectable ? 'cursor-pointer hover:shadow-md hover:border-slate-300' : 'cursor-default'
+                      } ${isActive ? stat.activeStyle : ''}`}
+                    >
+                      <div>
+                        <span className="text-sm font-semibold text-slate-400">{stat.title}</span>
+                        <p className="text-3xl font-extrabold text-slate-900 mt-2">{stat.value}</p>
+                        <span className="text-xs font-bold text-emerald-500 mt-1 block">
+                          {stat.change}
+                        </span>
+                      </div>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.iconColor}`}>
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
+                        </svg>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Main Fleet Panels */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Bus Inventory Card */}
-                <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between">
+                {/* Dynamic Detail Card */}
+                <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between min-h-[500px]">
                   <div>
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-bold text-slate-900">Bus Inventory</h3>
-                    </div>
+                    {/* View: BUSES */}
+                    {fleetSubView === 'buses' && (
+                      <>
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-lg font-bold text-slate-900">Bus Inventory</h3>
+                        </div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-sm">
-                        <thead>
-                          <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                            <th className="pb-3">Bus ID / Number</th>
-                            <th className="pb-3">Driver</th>
-                            <th className="pb-3">Route</th>
-                            <th className="pb-3">Capacity</th>
-                            <th className="pb-3">Status</th>
-                            <th className="pb-3 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
-                          {buses.length === 0 ? (
-                            <tr>
-                              <td colSpan="6" className="py-6 text-center text-slate-400">No buses registered in the system.</td>
-                            </tr>
-                          ) : (
-                            buses.map((bus) => (
-                              <tr key={bus._id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="py-4 font-bold text-slate-800">{bus.busNumber}</td>
-                                <td className="py-4">{bus.driverId?.name || <span className="text-slate-400">Unassigned</span>}</td>
-                                <td className="py-4 text-blue-600 font-semibold">{bus.routeId?.name || <span className="text-slate-400">No Route</span>}</td>
-                                <td className="py-4 text-slate-400">{bus.capacity} Seats</td>
-                                <td className="py-4">
-                                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md tracking-wide uppercase ${
-                                    bus.status === 'active' 
-                                      ? 'bg-emerald-50 text-emerald-600' 
-                                      : 'bg-rose-50 text-rose-600'
-                                  }`}>
-                                    {bus.status}
-                                  </span>
-                                </td>
-                                <td className="py-4 text-right space-x-2">
-                                  <button
-                                    onClick={() => toggleBusStatus(bus._id, bus.status)}
-                                    className="text-xs px-2.5 py-1 rounded bg-slate-100 hover:bg-blue-100 hover:text-blue-600 font-bold text-slate-600 transition-colors"
-                                  >
-                                    {bus.status === 'active' ? 'Disable' : 'Enable'}
-                                  </button>
-                                  <button
-                                    onClick={() => deleteBus(bus._id)}
-                                    className="text-xs px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-colors"
-                                  >
-                                    Delete
-                                  </button>
-                                </td>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                <th className="pb-3">Bus ID / Number</th>
+                                <th className="pb-3">Driver</th>
+                                <th className="pb-3">Route</th>
+                                <th className="pb-3">Capacity</th>
+                                <th className="pb-3">Status</th>
+                                <th className="pb-3 text-right">Actions</th>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+                              {buses.length === 0 ? (
+                                <tr>
+                                  <td colSpan="6" className="py-6 text-center text-slate-400">No buses registered in the system.</td>
+                                </tr>
+                              ) : (
+                                buses.map((bus) => (
+                                  <tr key={bus._id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="py-4 font-bold text-slate-800">{bus.busNumber}</td>
+                                    <td className="py-4">{bus.driverId?.name || <span className="text-slate-400">Unassigned</span>}</td>
+                                    <td className="py-4 text-blue-600 font-semibold">{bus.routeId?.name || <span className="text-slate-400">No Route</span>}</td>
+                                    <td className="py-4 text-slate-400">{bus.capacity} Seats</td>
+                                    <td className="py-4">
+                                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md tracking-wide uppercase ${
+                                        bus.status === 'active' 
+                                          ? 'bg-emerald-50 text-emerald-600' 
+                                          : 'bg-rose-50 text-rose-600'
+                                      }`}>
+                                        {bus.status}
+                                      </span>
+                                    </td>
+                                    <td className="py-4 text-right space-x-2">
+                                      <button
+                                        onClick={() => toggleBusStatus(bus._id, bus.status)}
+                                        className="text-xs px-2.5 py-1 rounded bg-slate-100 hover:bg-blue-100 hover:text-blue-600 font-bold text-slate-600 transition-colors cursor-pointer"
+                                      >
+                                        {bus.status === 'active' ? 'Disable' : 'Enable'}
+                                      </button>
+                                      <button
+                                        onClick={() => deleteBus(bus._id)}
+                                        className="text-xs px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-colors cursor-pointer"
+                                      >
+                                        Delete
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+
+                    {/* View: ROUTES */}
+                    {fleetSubView === 'routes' && (
+                      <>
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-lg font-bold text-slate-900">Active Route Inventory</h3>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                <th className="pb-3">Route Name</th>
+                                <th className="pb-3">Distance</th>
+                                <th className="pb-3">Duration</th>
+                                <th className="pb-3">Stops</th>
+                                <th className="pb-3 text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+                              {routes.length === 0 ? (
+                                <tr>
+                                  <td colSpan="5" className="py-6 text-center text-slate-400">No active routes registered.</td>
+                                </tr>
+                              ) : (
+                                routes.map((route) => (
+                                  <tr key={route._id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="py-4 font-bold text-slate-800">{route.name}</td>
+                                    <td className="py-4 text-slate-550">{route.distance} km</td>
+                                    <td className="py-4 text-slate-550">{route.estimatedDuration} mins</td>
+                                    <td className="py-4">
+                                      <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[11px] font-bold">
+                                        {route.stops?.length || 0} stops
+                                      </span>
+                                    </td>
+                                    <td className="py-4 text-right">
+                                      <button
+                                        onClick={() => deleteRoute(route._id)}
+                                        className="text-xs px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-colors cursor-pointer"
+                                      >
+                                        Delete
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+
+                    {/* View: DRIVERS */}
+                    {fleetSubView === 'drivers' && (
+                      <>
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-lg font-bold text-slate-900">Driver Directory</h3>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                <th className="pb-3">Driver Info</th>
+                                <th className="pb-3">Assigned Vehicle</th>
+                                <th className="pb-3">Approval</th>
+                                <th className="pb-3 text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+                              {drivers.length === 0 ? (
+                                <tr>
+                                  <td colSpan="4" className="py-6 text-center text-slate-400">No registered drivers.</td>
+                                </tr>
+                              ) : (
+                                drivers.map((driver) => {
+                                  const assignedBus = buses.find(b => b.driverId?._id === driver._id);
+                                  return (
+                                    <tr key={driver._id} className="hover:bg-slate-50/50 transition-colors">
+                                      <td className="py-4">
+                                        <div className="font-bold text-slate-800">{driver.name}</div>
+                                        <div className="text-[11px] text-slate-400">{driver.email}</div>
+                                      </td>
+                                      <td className="py-4 font-semibold text-blue-600">
+                                        {assignedBus ? assignedBus.busNumber : <span className="text-slate-400 font-medium">None</span>}
+                                      </td>
+                                      <td className="py-4">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase ${
+                                          driver.isApproved 
+                                            ? 'bg-emerald-50 text-emerald-600' 
+                                            : 'bg-amber-50 text-amber-600'
+                                        }`}>
+                                          {driver.isApproved ? 'Approved' : 'Pending'}
+                                        </span>
+                                      </td>
+                                      <td className="py-4 text-right space-x-2">
+                                        {!driver.isApproved ? (
+                                          <button
+                                            onClick={() => handleApproveDriver(driver._id, 'approve')}
+                                            className="text-xs px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-bold transition-colors cursor-pointer"
+                                          >
+                                            Approve
+                                          </button>
+                                        ) : (
+                                          <button
+                                            onClick={() => handleApproveDriver(driver._id, 'reject')}
+                                            className="text-xs px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-600 font-bold transition-colors cursor-pointer"
+                                          >
+                                            Suspend
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => handleDeleteDriver(driver._id)}
+                                          className="text-xs px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-colors cursor-pointer"
+                                        >
+                                          Delete
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+
+                    {/* View: TRIPS */}
+                    {fleetSubView === 'trips' && (
+                      <>
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-lg font-bold text-slate-900">Today's Active Trips</h3>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                <th className="pb-3">Bus Number</th>
+                                <th className="pb-3">Route</th>
+                                <th className="pb-3">Driver</th>
+                                <th className="pb-3">Start Time</th>
+                                <th className="pb-3">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+                              {trips.length === 0 ? (
+                                <tr>
+                                  <td colSpan="5" className="py-6 text-center text-slate-400">No active trips recorded for today.</td>
+                                </tr>
+                              ) : (
+                                trips.map((trip) => {
+                                  const statusColors = {
+                                    scheduled: 'bg-slate-100 text-slate-600',
+                                    running: 'bg-blue-50 text-blue-605',
+                                    delayed: 'bg-amber-50 text-amber-600',
+                                    completed: 'bg-emerald-50 text-emerald-600',
+                                    cancelled: 'bg-rose-50 text-rose-600'
+                                  };
+                                  return (
+                                    <tr key={trip._id} className="hover:bg-slate-50/50 transition-colors">
+                                      <td className="py-4 font-bold text-slate-800">{trip.busId?.busNumber || 'N/A'}</td>
+                                      <td className="py-4 font-semibold text-blue-600">{trip.routeId?.name || 'N/A'}</td>
+                                      <td className="py-4 font-medium">{trip.driverId?.name || 'N/A'}</td>
+                                      <td className="py-4 text-xs text-slate-450">{new Date(trip.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                      <td className="py-4">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase ${
+                                          statusColors[trip.status] || 'bg-slate-100 text-slate-600'
+                                        }`}>
+                                          {trip.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1214,48 +1525,437 @@ export default function AdminDashboardPage() {
 
           {/* VIEW: ANALYTICS */}
           {activeTab === 'Analytics' && (
-            <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
-              {/* Header Title & Filters */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn print:space-y-4 print:p-0">
+              {/* Header Title & Export button */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
                 <div>
                   <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Performance Analytics</h2>
                   <p className="text-slate-500 text-sm mt-1">Comprehensive overview of transit network performance and fleet metrics.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <select className="bg-white border border-slate-200 text-slate-600 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none">
-                    <option>Last 7 Days</option>
-                  </select>
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/10">
-                    Export PDF
+                  <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/10 flex items-center space-x-1.5 transition-colors cursor-pointer">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    <span>Export PDF Report</span>
                   </button>
                 </div>
               </div>
 
-              {/* Analytics Dashboard Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {[
-                  { title: 'Total Trips Completed', value: stats?.completedTrips || '4,280', change: '+5%', sub: 'vs last week', icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z', iconColor: 'text-blue-600 bg-blue-50' },
-                  { title: 'Avg. Delay', value: `${stats?.averageDelayMinutes || 4.2} mins`, change: '-12%', sub: 'improvement detected', icon: 'M12 8v4l3 3', iconColor: 'text-orange-500 bg-orange-50' },
-                  { title: 'Fleet Utilization', value: '88%', change: 'OPTIMAL', sub: '210 active units', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10', iconColor: 'text-emerald-500 bg-emerald-50' },
-                  { title: 'Passenger Volume', value: '125.4k', change: 'Peak growth', sub: 'Total commuters', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857', iconColor: 'text-indigo-500 bg-indigo-50' }
-                ].map((stat, idx) => (
-                  <div key={idx} className="bg-white border border-slate-200/80 rounded-2xl p-6 flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-semibold text-slate-400">{stat.title}</span>
-                      <p className="text-3xl font-extrabold text-slate-900 mt-2">{stat.value}</p>
-                      <div className="flex items-center space-x-1.5 mt-1">
-                        <span className="text-xs font-bold text-emerald-500">{stat.change}</span>
-                        <span className="text-xs font-semibold text-slate-400">{stat.sub}</span>
+              {/* Print Header (Only visible when printing) */}
+              <div className="hidden print:block border-b-2 border-slate-200 pb-4 mb-6">
+                <h1 className="text-4xl font-extrabold text-slate-900">SmartTransit Performance Report</h1>
+                <p className="text-slate-500 text-sm mt-1">Generated on: {new Date().toLocaleString()}</p>
+                {(analyticsStartDate || analyticsEndDate) && (
+                  <p className="text-slate-700 text-xs mt-1">
+                    Date Range: {analyticsStartDate || 'Beginning'} to {analyticsEndDate || 'Present'}
+                  </p>
+                )}
+              </div>
+
+              {/* Filters Panel */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-wrap gap-4 items-end print:hidden">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    value={analyticsStartDate}
+                    onChange={(e) => setAnalyticsStartDate(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700"
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">End Date</label>
+                  <input
+                    type="date"
+                    value={analyticsEndDate}
+                    onChange={(e) => setAnalyticsEndDate(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700"
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Filter Route</label>
+                  <select
+                    value={analyticsRouteFilter}
+                    onChange={(e) => setAnalyticsRouteFilter(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700"
+                  >
+                    <option value="">All Routes</option>
+                    {routes.map((r) => (
+                      <option key={r._id} value={r._id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Filter Driver</label>
+                  <select
+                    value={analyticsDriverFilter}
+                    onChange={(e) => setAnalyticsDriverFilter(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700"
+                  >
+                    <option value="">All Drivers</option>
+                    {drivers.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => {
+                    setAnalyticsStartDate('');
+                    setAnalyticsEndDate('');
+                    setAnalyticsRouteFilter('');
+                    setAnalyticsDriverFilter('');
+                  }}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              </div>
+
+              {analyticsLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-slate-500 text-sm font-semibold">Loading transit performance data...</p>
+                </div>
+              ) : (
+                <div className="space-y-8 print:space-y-6">
+                  {/* KPI Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
+                    {[
+                      {
+                        title: 'Completed Trips',
+                        value: stats?.completedTrips || '0',
+                        sub: `Out of ${stats?.totalTrips || 0} scheduled`,
+                        color: 'text-blue-600 bg-blue-50'
+                      },
+                      {
+                        title: 'Average Delay',
+                        value: `${stats?.averageDelayMinutes || 0} mins`,
+                        sub: 'System-wide delay frequency',
+                        color: 'text-orange-500 bg-orange-50'
+                      },
+                      {
+                        title: 'Total Active Routes',
+                        value: stats?.totalRoutes || '0',
+                        sub: `${stats?.totalSchedules || 0} active schedules`,
+                        color: 'text-emerald-500 bg-emerald-50'
+                      },
+                      {
+                        title: 'Active Buses',
+                        value: stats?.totalBuses || '0',
+                        sub: `${buses.filter(b => b.status === 'active').length} in active status`,
+                        color: 'text-indigo-500 bg-indigo-50'
+                      }
+                    ].map((stat, idx) => (
+                      <div key={idx} className="bg-white border border-slate-200/80 rounded-2xl p-6 print:p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.title}</span>
+                          <p className="text-3xl font-extrabold text-slate-900 mt-2">{stat.value}</p>
+                          <span className="text-xs font-semibold text-slate-450 block mt-1">{stat.sub}</span>
+                        </div>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${stat.color} print:hidden`}>
+                          #
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Section 1: Route Popularity & Average Delay */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:grid-cols-1">
+                    {/* Card 1: Route Popularity */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 page-break-inside">
+                      <h3 className="text-lg font-bold text-slate-900">Route Popularity</h3>
+                      <p className="text-xs text-slate-400">Total completed trip counts across transit routes</p>
+                      <div className="space-y-4">
+                        {(analyticsRouteFilter ? routePopularity.filter(r => r._id === analyticsRouteFilter) : routePopularity).length === 0 ? (
+                          <p className="text-sm text-slate-400 py-6 text-center">No route data available for the selected filters.</p>
+                        ) : (
+                          (analyticsRouteFilter ? routePopularity.filter(r => r._id === analyticsRouteFilter) : routePopularity).map((route, idx) => {
+                            const maxTrips = Math.max(...routePopularity.map(r => r.tripCount), 1);
+                            const percentage = (route.tripCount / maxTrips) * 100;
+                            return (
+                              <div key={route._id || idx} className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold">
+                                  <span className="text-slate-700">{route.routeName}</span>
+                                  <span className="text-blue-600">{route.tripCount} Trips</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.iconColor}`}>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
-                      </svg>
+
+                    {/* Card 2: Average Delay by Route */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 page-break-inside">
+                      <h3 className="text-lg font-bold text-slate-900">Average Delay by Route</h3>
+                      <p className="text-xs text-slate-400">Average trip delay minutes per route</p>
+                      <div className="space-y-4">
+                        {(analyticsRouteFilter ? averageDelays.filter(r => r._id === analyticsRouteFilter) : averageDelays).length === 0 ? (
+                          <p className="text-sm text-slate-400 py-6 text-center">No delay data available for the selected filters.</p>
+                        ) : (
+                          (analyticsRouteFilter ? averageDelays.filter(r => r._id === analyticsRouteFilter) : averageDelays).map((route, idx) => {
+                            const maxDelay = Math.max(...averageDelays.map(r => r.averageDelayMinutes), 1);
+                            const percentage = (route.averageDelayMinutes / maxDelay) * 100;
+                            const isHighDelay = route.averageDelayMinutes > 10;
+                            const isWarningDelay = route.averageDelayMinutes >= 5 && route.averageDelayMinutes <= 10;
+                            const barColor = isHighDelay ? 'from-red-500 to-rose-600' : isWarningDelay ? 'from-amber-400 to-orange-500' : 'from-emerald-400 to-green-500';
+                            const textColor = isHighDelay ? 'text-red-600' : isWarningDelay ? 'text-orange-500' : 'text-green-600';
+                            
+                            return (
+                              <div key={route._id || idx} className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold">
+                                  <span className="text-slate-700">{route.routeName}</span>
+                                  <span className={textColor}>{route.averageDelayMinutes} mins avg</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                                  <div className={`bg-gradient-to-r ${barColor} h-full rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {/* Section 2: Completed Trips Breakdown & Peak hours */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:grid-cols-1">
+                    {/* Card 1: Completed Trips GroupBy Breakdown */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 lg:col-span-1 page-break-inside">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-md font-bold text-slate-900">Completed Trips</h3>
+                        <div className="flex bg-slate-100 p-0.5 rounded-lg text-[10px] font-bold text-slate-500 print:hidden">
+                          {['route', 'bus', 'driver'].map((group) => (
+                            <button
+                              key={group}
+                              onClick={() => setCompletedTripsGroup(group)}
+                              className={`px-2 py-1 rounded-md uppercase tracking-wider transition-colors cursor-pointer ${
+                                completedTripsGroup === group ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-slate-800'
+                              }`}
+                            >
+                              {group}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-400">Grouped by {completedTripsGroup} view</p>
+                      
+                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                        {completedTrips.length === 0 ? (
+                          <p className="text-sm text-slate-400 py-6 text-center">No completed trip data found.</p>
+                        ) : (
+                          completedTrips.map((item, idx) => {
+                            const maxVal = Math.max(...completedTrips.map(c => c.completedCount), 1);
+                            const percent = (item.completedCount / maxVal) * 100;
+                            return (
+                              <div key={item._id || idx} className="space-y-1">
+                                <div className="flex justify-between text-xs">
+                                  <span className="font-semibold text-slate-700 truncate max-w-[150px]">{item.label}</span>
+                                  <span className="font-bold text-slate-900">{item.completedCount} trips</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                  <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${percent}%` }}></div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card 2: Peak Hours SVG chart */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 lg:col-span-2 page-break-inside">
+                      <h3 className="text-lg font-bold text-slate-900">Peak Travel Hours</h3>
+                      <p className="text-xs text-slate-400">Distribution of passenger travel activity and trip start times by hour of day</p>
+                      
+                      {peakHours.length === 0 ? (
+                        <p className="text-sm text-slate-400 py-10 text-center">No passenger activity records found.</p>
+                      ) : (
+                        <div>
+                          {/* SVG Bar Chart */}
+                          <div className="w-full h-48 mt-4 flex items-end justify-between border-b border-slate-200 pb-2 relative">
+                            {Array.from({ length: 24 }, (_, hour) => {
+                              const match = peakHours.find(p => p.hour === hour);
+                              const count = match ? match.tripCount : 0;
+                              const maxTrips = Math.max(...peakHours.map(p => p.tripCount), 1);
+                              const barHeightPercent = (count / maxTrips) * 80; // Max 80% height to leave room for labels
+                              
+                              return (
+                                <div key={hour} className="group flex-1 flex flex-col items-center h-full justify-end px-0.5 relative">
+                                  {/* Tooltip on Hover */}
+                                  <div className="absolute bottom-full mb-1 hidden group-hover:block bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-lg z-10 whitespace-nowrap">
+                                    {count} Trips
+                                  </div>
+                                  {/* Bar */}
+                                  <div
+                                    style={{ height: `${barHeightPercent || 2}%` }}
+                                    className={`w-full rounded-t-sm transition-all duration-300 ${
+                                      count > 0 ? 'bg-gradient-to-t from-blue-500 to-indigo-500 group-hover:from-blue-600 group-hover:to-indigo-600' : 'bg-slate-100'
+                                    }`}
+                                  ></div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {/* Hour labels */}
+                          <div className="flex justify-between text-[9px] font-bold text-slate-400 mt-2 px-1">
+                            <span>12 AM</span>
+                            <span>4 AM</span>
+                            <span>8 AM</span>
+                            <span>12 PM</span>
+                            <span>4 PM</span>
+                            <span>8 PM</span>
+                            <span>11 PM</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Section 3: Driver Performance Table */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 page-break-inside">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">Driver Performance Evaluation</h3>
+                        <p className="text-xs text-slate-400">Punctuality rates, total completed trips, and delays per driver</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Search driver..."
+                          value={driverSearchQuery}
+                          onChange={e => setDriverSearchQuery(e.target.value)}
+                          className="px-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 max-w-xs text-slate-700 print:hidden"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-150 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th className="py-3 px-4">Driver Name</th>
+                            <th className="py-3 px-4">Total Trips</th>
+                            <th className="py-3 px-4">Completed</th>
+                            <th className="py-3 px-4">Delayed Trips</th>
+                            <th className="py-3 px-4">Total Delay</th>
+                            <th className="py-3 px-4">Punctuality</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-xs">
+                          {driverPerformance.filter(d => {
+                            const matchesDriver = analyticsDriverFilter ? d._id === analyticsDriverFilter : true;
+                            const matchesSearch = driverSearchQuery
+                              ? d.driverName.toLowerCase().includes(driverSearchQuery.toLowerCase()) ||
+                                d.driverEmail.toLowerCase().includes(driverSearchQuery.toLowerCase())
+                              : true;
+                            return matchesDriver && matchesSearch;
+                          }).length === 0 ? (
+                            <tr>
+                              <td colSpan="6" className="py-6 text-center text-slate-400">No driver records found.</td>
+                            </tr>
+                          ) : (
+                            driverPerformance.filter(d => {
+                              const matchesDriver = analyticsDriverFilter ? d._id === analyticsDriverFilter : true;
+                              const matchesSearch = driverSearchQuery
+                                ? d.driverName.toLowerCase().includes(driverSearchQuery.toLowerCase()) ||
+                                  d.driverEmail.toLowerCase().includes(driverSearchQuery.toLowerCase())
+                                : true;
+                              return matchesDriver && matchesSearch;
+                            }).map((driver) => {
+                              const punct = driver.punctualityRate;
+                              const punctColor = punct >= 90 ? 'bg-green-50 text-green-700 border-green-200' : punct >= 75 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-red-50 text-red-700 border-red-200';
+                              
+                              return (
+                                <tr key={driver._id} className="hover:bg-slate-50/50">
+                                  <td className="py-3.5 px-4 font-bold text-slate-800">
+                                    <div>{driver.driverName}</div>
+                                    <div className="text-[10px] text-slate-400 font-medium">{driver.driverEmail}</div>
+                                  </td>
+                                  <td className="py-3.5 px-4 font-semibold text-slate-600">{driver.totalTrips}</td>
+                                  <td className="py-3.5 px-4 font-semibold text-emerald-600">{driver.completedTrips}</td>
+                                  <td className="py-3.5 px-4 font-semibold text-rose-600">{driver.delayedTrips}</td>
+                                  <td className="py-3.5 px-4 text-slate-500 font-medium">{driver.totalDelayMinutes} mins</td>
+                                  <td className="py-3.5 px-4">
+                                    <span className={`px-2 py-1 rounded-full border text-[10px] font-extrabold ${punctColor}`}>
+                                      {punct}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Section 4: Bus & Fleet Utilization */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 page-break-inside">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">Bus & Fleet Utilization</h3>
+                        <p className="text-xs text-slate-400">Comparison of completed trips vs scheduled trips per bus unit</p>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Search bus number..."
+                        value={busSearchQuery}
+                        onChange={e => setBusSearchQuery(e.target.value)}
+                        className="px-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 max-w-xs text-slate-700 print:hidden"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {busUtilization.filter(b => {
+                        return busSearchQuery
+                          ? b.busNumber.toLowerCase().includes(busSearchQuery.toLowerCase())
+                          : true;
+                      }).length === 0 ? (
+                        <p className="text-sm text-slate-400 py-6 text-center col-span-3">No bus utilization data found.</p>
+                      ) : (
+                        busUtilization.filter(b => {
+                          return busSearchQuery
+                            ? b.busNumber.toLowerCase().includes(busSearchQuery.toLowerCase())
+                            : true;
+                        }).map((bus) => {
+                          const rate = bus.utilizationRate;
+                          const rateColor = rate >= 80 ? 'text-emerald-500' : rate >= 50 ? 'text-orange-500' : 'text-red-500';
+                          const rateBg = rate >= 80 ? 'bg-emerald-500' : rate >= 50 ? 'bg-orange-500' : 'bg-red-500';
+                          
+                          return (
+                            <div key={bus._id} className="border border-slate-100 rounded-xl p-4 space-y-3 hover:shadow-md transition-shadow">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-extrabold text-slate-800 text-sm">{bus.busNumber}</h4>
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase">Capacity: {bus.capacity} seats</span>
+                                </div>
+                                <span className={`text-xs font-bold ${rateColor}`}>{rate}% Utilized</span>
+                              </div>
+                              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div className={`${rateBg} h-full rounded-full transition-all duration-300`} style={{ width: `${rate}%` }}></div>
+                              </div>
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Completed: <strong className="text-slate-700">{bus.completedTrips}</strong></span>
+                                <span>Cancelled: <strong className="text-slate-700">{bus.cancelledTrips}</strong></span>
+                                <span>Total: <strong className="text-slate-700">{bus.totalTrips}</strong></span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
