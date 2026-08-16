@@ -154,7 +154,7 @@ export async function POST(request) {
         toStopId: toStopId || undefined,
         journeyDate:
           journeyDate || new Date(),
-        status: 'completed',
+        status: 'active',
       });
 
     return NextResponse.json(
