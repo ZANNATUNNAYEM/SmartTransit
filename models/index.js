@@ -4,6 +4,7 @@ import Route from './Route.js';
 import Bus from './Bus.js';
 import Schedule from './Schedule.js';
 import Trip from './Trip.js';
+import PassengerJourney from './PassengerJourney.js';
 import Complaint from './Complaint.js';
 import EmergencyReport from './EmergencyReport.js';
 import MaintenanceReport from './MaintenanceReport.js';
@@ -18,6 +19,7 @@ export {
   Bus,
   Schedule,
   Trip,
+  PassengerJourney,
   Complaint,
   EmergencyReport,
   MaintenanceReport,

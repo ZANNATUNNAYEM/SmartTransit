@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
 import {
   User,
   BusStop,
@@ -83,34 +84,58 @@ async function seed() {
 
   // 1. Seed Users
   console.log('Seeding Users...');
+  const adminPassword = await bcrypt.hash(
+    'admin123',
+    10
+  );
+
+  const driverPassword = await bcrypt.hash(
+    'driver123',
+    10
+  );
+
+  const passengerPassword = await bcrypt.hash(
+    'passenger123',
+    10
+  );
+
+  const verifiedUserDefaults = {
+    emailVerifiedAt: new Date(),
+    isEmailVerified: true
+  };
+
   const users = await User.insertMany([
     {
       name: 'Super Admin',
       email: 'admin@smarttransit.com',
       phone: '+8801711111111',
-      password: 'hashed_password_admin_123',
+      password: adminPassword,
       role: 'admin',
       isApproved: true,
-      status: 'active'
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      isEmailVerified: true
     },
     {
       name: 'Rahim Uddin',
       email: 'rahim@smarttransit.com',
       phone: '+8801722222222',
-      password: 'hashed_password_driver_123',
+      password: driverPassword,
       role: 'driver',
       driverDetails: {
         licenseNo: 'DL-DHAKA-98765',
         orgName: 'Dhaka Chaka Ltd'
       },
       isApproved: true,
-      status: 'active'
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      isEmailVerified: true
     },
     {
       name: 'Karim Ali',
       email: 'karim@smarttransit.com',
       phone: '+8801733333333',
-      password: 'hashed_password_driver_123',
+      password: driverPassword,
       role: 'driver',
       driverDetails: {
         licenseNo: 'DL-DHAKA-12345',
@@ -123,19 +148,23 @@ async function seed() {
       name: 'Zannat Passenger',
       email: 'zannat@smarttransit.com',
       phone: '+8801744444444',
-      password: 'hashed_password_passenger_123',
+      password: passengerPassword,
       role: 'passenger',
       isApproved: true,
-      status: 'active'
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      isEmailVerified: true      
     },
     {
       name: 'Maimuna Passenger',
       email: 'maimuna@smarttransit.com',
       phone: '+8801755555555',
-      password: 'hashed_password_passenger_123',
+      password: passengerPassword,
       role: 'passenger',
       isApproved: true,
-      status: 'active'
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      isEmailVerified: true
     }
   ]);
   const admin = users[0];

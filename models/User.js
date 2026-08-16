@@ -124,6 +124,62 @@ const UserSchema = new mongoose.Schema(
         ref: 'BusStop',
       },
     ],
+    recentSearches: [
+      {
+        busId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Bus',
+        },
+        searchedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
+    travelHistory: [
+      {
+        tripId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Trip',
+        },
+        routeId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Route',
+        },
+        busId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Bus',
+        },
+        travelledAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
+    frequentDestinations: [
+      {
+        stopId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'BusStop',
+        },
+        visitCount: {
+          type: Number,
+          default: 1,
+        },
+        lastVisitedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    oneSignalSubscriptionIds: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
   },
   {
     timestamps: true,
