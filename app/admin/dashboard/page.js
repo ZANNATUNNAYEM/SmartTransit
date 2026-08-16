@@ -7,7 +7,10 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Fleet Management');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   // Loaded database states
   const [stats, setStats] = useState(null);
   const [buses, setBuses] = useState([]);
@@ -126,8 +129,15 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     fetchAllData();
+    loadNotifications(true);
   }, [router]);
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      loadNotifications(false);
+    }, 30000);
 
+    return () => clearInterval(intervalId);
+  }, []);
   async function handleLogout() {
     try {
       setIsLoggingOut(true);
@@ -141,7 +151,120 @@ export default function AdminDashboardPage() {
       setIsLoggingOut(false);
     }
   }
+  async function loadNotifications(showLoading = false) {
+    try {
+      if (showLoading) {
+        setNotificationsLoading(true);
+      }
 
+      const response = await fetch(
+        '/api/notifications',
+        {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setNotifications(
+          data.notifications || []
+        );
+
+        setUnreadCount(
+          data.unreadCount || 0
+        );
+      } else {
+        console.error(
+          'Notification loading failed:',
+          data
+        );
+      }
+    } catch (error) {
+      console.error(
+        'Notification loading error:',
+        error
+      );
+    } finally {
+      if (showLoading) {
+        setNotificationsLoading(false);
+      }
+    }
+  }
+
+
+  async function markNotificationAsRead(
+    notificationId
+  ) {
+    try {
+      const response = await fetch(
+        `/api/notifications/${notificationId}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(
+          'Mark notification as read failed:',
+          data
+        );
+        return;
+      }
+
+      setNotifications(
+        (currentNotifications) =>
+          currentNotifications.map(
+            (notification) =>
+              notification._id ===
+              notificationId
+                ? {
+                    ...notification,
+                    read: true,
+                  }
+                : notification
+          )
+      );
+
+      setUnreadCount(
+        (currentCount) =>
+          Math.max(
+            0,
+            currentCount - 1
+          )
+      );
+    } catch (error) {
+      console.error(
+        'Mark notification as read error:',
+        error
+      );
+    }
+  }
+
+
+  function formatNotificationDate(
+    dateValue
+  ) {
+    if (!dateValue) {
+      return '';
+    }
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    return date.toLocaleString([], {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    });
+  }
   // Handle driver approval or rejection
   async function handleApproveDriver(driverId, action) {
     try {
@@ -468,14 +591,179 @@ export default function AdminDashboardPage() {
 
           {/* User Info & Notifications */}
           <div className="flex items-center space-x-6">
-            <button className="text-slate-400 hover:text-slate-650 transition-colors relative">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              {drivers.some(d => !d.isApproved) && (
-                <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500"></span>
+            <div className="relative">
+
+              <button
+                type="button"
+                onClick={() => {
+                  const opening =
+                    !notificationsOpen;
+
+                  setNotificationsOpen(opening);
+
+                  if (opening) {
+                    loadNotifications(true);
+                  }
+                }}
+                aria-label="Notifications"
+                aria-expanded={notificationsOpen}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-50 hover:text-blue-600"
+              >
+
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                    {unreadCount > 99
+                      ? '99+'
+                      : unreadCount}
+                  </span>
+                )}
+
+              </button>
+
+
+              {notificationsOpen && (
+                <div className="absolute right-0 z-50 mt-3 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+
+                  {/* Notification Header */}
+
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+
+                    <div>
+                      <h3 className="font-bold text-slate-900">
+                        Notifications
+                      </h3>
+
+                      <p className="text-xs text-slate-500">
+                        {unreadCount} unread
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        loadNotifications(true)
+                      }
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                      Refresh
+                    </button>
+
+                  </div>
+
+
+                  {/* Notification List */}
+
+                  <div className="max-h-96 overflow-y-auto">
+
+                    {notificationsLoading ? (
+
+                      <div className="px-4 py-8 text-center text-sm text-slate-500">
+                        Loading notifications...
+                      </div>
+
+                    ) : notifications.length === 0 ? (
+
+                      <div className="px-4 py-8 text-center text-sm text-slate-500">
+                        No notifications.
+                      </div>
+
+                    ) : (
+
+                      notifications.map(
+                        (notification) => (
+
+                          <button
+                            key={notification._id}
+                            type="button"
+                            onClick={() => {
+
+                              if (
+                                !notification.read
+                              ) {
+                                markNotificationAsRead(
+                                  notification._id
+                                );
+                              }
+
+                            }}
+                            className={`block w-full border-b border-slate-100 px-4 py-4 text-left transition hover:bg-slate-50 ${
+                              notification.read
+                                ? 'bg-white'
+                                : 'bg-blue-50/60'
+                            }`}
+                          >
+
+                            <div className="flex gap-3">
+
+                              {/* Unread indicator */}
+
+                              <div
+                                className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                                  notification.read
+                                    ? 'bg-slate-300'
+                                    : 'bg-blue-600'
+                                }`}
+                              />
+
+                              <div className="min-w-0 flex-1">
+
+                                <div className="flex items-start justify-between gap-2">
+
+                                  <p className="text-sm font-semibold text-slate-900">
+                                    {notification.title ||
+                                      notification.type ||
+                                      'Notification'}
+                                  </p>
+
+                                  {!notification.read && (
+                                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-blue-600">
+                                      New
+                                    </span>
+                                  )}
+
+                                </div>
+
+                                <p className="mt-1 text-sm leading-5 text-slate-600">
+                                  {notification.message}
+                                </p>
+
+                                <p className="mt-2 text-[11px] text-slate-400">
+                                  {formatNotificationDate(
+                                    notification.createdAt
+                                  )}
+                                </p>
+
+                              </div>
+
+                            </div>
+
+                          </button>
+
+                        )
+                      )
+
+                    )}
+
+                  </div>
+
+                </div>
               )}
-            </button>
+
+            </div>
 
             <div className="flex items-center space-x-3 border-l border-slate-200 pl-6">
               <div className="text-right">
