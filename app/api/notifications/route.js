@@ -9,6 +9,11 @@ import {
 import { verifyAccessToken } from '@/lib/jwt';
 
 
+/*
+ * GET
+ * Fetch notifications for the logged-in
+ * passenger/driver/admin.
+ */
 export async function GET(request) {
 
   try {
@@ -16,8 +21,29 @@ export async function GET(request) {
     await connectDB();
 
 
+    /*
+     * IMPORTANT:
+     * Admin uses admin_session.
+     * Passenger/driver uses access_token.
+     *
+     * We check admin_session FIRST so that
+     * an old access_token cannot interfere
+     * with the Admin Dashboard.
+     */
+
+    const adminToken =
+      request.cookies.get(
+        'admin_session'
+      )?.value;
+
+    const accessToken =
+      request.cookies.get(
+        'access_token'
+      )?.value;
+
+
     const token =
-      request.cookies.get('access_token')?.value;
+      adminToken || accessToken;
 
 
     if (!token) {
@@ -101,14 +127,26 @@ export async function GET(request) {
   }
 
 }
+
+
+/*
+ * POST
+ *
+ * Create a notification for the
+ * currently logged-in passenger/driver.
+ */
 export async function POST(request) {
 
   try {
 
     await connectDB();
 
+
     const token =
-      request.cookies.get('access_token')?.value;
+      request.cookies.get(
+        'access_token'
+      )?.value;
+
 
     if (!token) {
 
@@ -123,8 +161,10 @@ export async function POST(request) {
 
     }
 
+
     const decoded =
       verifyAccessToken(token);
+
 
     if (!decoded?.userId) {
 
@@ -139,15 +179,21 @@ export async function POST(request) {
 
     }
 
+
     const body =
       await request.json();
+
 
     const {
       type,
       message,
     } = body;
 
-    if (!type || !message) {
+
+    if (
+      !type ||
+      !message
+    ) {
 
       return NextResponse.json(
         {
@@ -161,13 +207,19 @@ export async function POST(request) {
 
     }
 
+
     const notification =
       await Notification.create({
+
         userId:
           decoded.userId,
+
         type,
+
         message,
+
       });
+
 
     return NextResponse.json(
       {
@@ -179,12 +231,14 @@ export async function POST(request) {
       }
     );
 
+
   } catch (error) {
 
     console.error(
       'Create notification error:',
       error
     );
+
 
     return NextResponse.json(
       {
