@@ -1,13 +1,31 @@
 import { NextResponse } from 'next/server';
 
+import { connectDB } from '@/lib/db';
+
+import {
+  Notification,
+} from '@/models';
+
 import { verifyAccessToken } from '@/lib/jwt';
 
-import { sendSmartNotification } from '@/lib/notifications';
+import {
+  sendSmartNotification,
+} from '@/lib/notifications';
 
 
-export async function POST(request) {
+/*
+ * POST
+ * Send a notification to a SmartTransit user.
+ */
+export async function POST(
+  request,
+  { params }
+) {
 
   try {
+
+    await connectDB();
+
 
     // Check admin authentication
     const token =
@@ -48,10 +66,6 @@ export async function POST(request) {
     }
 
 
-    /*
-     * The reusable notification service
-     * will verify that the recipient exists.
-     */
     const body =
       await request.json();
 
@@ -83,10 +97,6 @@ export async function POST(request) {
     }
 
 
-    /*
-     * Send the notification using the
-     * centralized SmartTransit service.
-     */
     const result =
       await sendSmartNotification({
         userId,
@@ -100,7 +110,9 @@ export async function POST(request) {
       result,
       {
         status:
-          result.success ? 200 : 502,
+          result.success
+            ? 200
+            : 502,
       }
     );
 
@@ -126,4 +138,130 @@ export async function POST(request) {
 
   }
 
+}
+
+
+/*
+ * PATCH
+ * Mark a notification as read.
+ */
+export async function PATCH(
+  request,
+  { params }
+) {
+  try {
+    await connectDB();
+
+    // Driver/passenger authentication
+    const adminToken =
+      request.cookies.get(
+        'admin_session'
+      )?.value;
+
+    const accessToken =
+      request.cookies.get(
+        'access_token'
+      )?.value;
+
+    const token =
+      adminToken || accessToken;
+
+    if (!token) {
+      return NextResponse.json(
+        {
+          error: 'Unauthorized',
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    const decoded =
+      verifyAccessToken(token);
+
+    if (!decoded?.userId) {
+      return NextResponse.json(
+        {
+          error: 'Invalid token',
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    // Next.js dynamic route params
+    const {
+      id: notificationId,
+    } = await params;
+
+    if (!notificationId) {
+      return NextResponse.json(
+        {
+          error:
+            'Notification ID is required',
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /*
+     * Only update a notification that belongs
+     * to the currently logged-in user.
+     */
+    const notification =
+      await Notification.findOneAndUpdate(
+        {
+          _id: notificationId,
+          userId: decoded.userId,
+        },
+        {
+          $set: {
+            read: true,
+          },
+        },
+        {
+          returnDocument: 'after',
+        }
+      );
+
+    if (!notification) {
+      return NextResponse.json(
+        {
+          error:
+            'Notification not found',
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message:
+        'Notification marked as read',
+      notification,
+    });
+
+  } catch (error) {
+    console.error(
+      'Mark notification as read error:',
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          error.message ||
+          'Unable to mark notification as read',
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }
