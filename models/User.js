@@ -174,6 +174,12 @@ const UserSchema = new mongoose.Schema(
         },
       },
     ],
+    oneSignalSubscriptionIds: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
   },
   {
     timestamps: true,

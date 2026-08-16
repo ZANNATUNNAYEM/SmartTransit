@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Script from 'next/script';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -32,7 +33,10 @@ export default function PassengerDashboardPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   // Smart Route Planning states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
@@ -61,6 +65,127 @@ export default function PassengerDashboardPage() {
   const [isFindingStops, setIsFindingStops] = useState(false);
   const [liveBus, setLiveBus] = useState(null);
   const [isLoadingLiveBus, setIsLoadingLiveBus] = useState(true);
+  
+  useEffect(() => {
+
+    if (
+      typeof window === 'undefined'
+    ) {
+      return;
+    }
+
+
+    if (
+      window.__smartTransitOneSignalInitStarted
+    ) {
+      return;
+    }
+
+
+    window.__smartTransitOneSignalInitStarted =
+      true;
+
+
+    window.OneSignalDeferred =
+      window.OneSignalDeferred || [];
+
+
+    window.OneSignalDeferred.push(
+      async function (OneSignal) {
+
+        try {
+
+          await OneSignal.init({
+            appId:
+              'a11bd766-0b39-4a44-85bc-a952fddba44c',
+
+            allowLocalhostAsSecureOrigin:
+              true,
+
+            serviceWorkerPath:
+              'OneSignalSDKWorker.js',
+
+            notifyButton: {
+              enable: false,
+            },
+
+            notificationClickHandlerMatch:
+              'origin',
+
+            notificationClickHandlerAction:
+              'focus',
+
+            defaultIcon:
+              '/icons/notification-icon.png',
+          });
+
+
+          console.log(
+            'OneSignal initialized successfully.'
+          );
+
+          const subscriptionId =
+            OneSignal.User.PushSubscription.id;
+
+          if (subscriptionId) {
+
+            const response =
+              await fetch(
+                '/api/notifications/subscribe',
+                {
+                  method: 'POST',
+
+                  headers: {
+                    'Content-Type':
+                      'application/json',
+                  },
+
+                  credentials: 'include',
+
+                  body: JSON.stringify({
+                    subscriptionId,
+                  }),
+                }
+              );
+
+            const data =
+              await response.json();
+
+            if (!response.ok) {
+
+              console.error(
+                'Connecting OneSignal subscription failed:',
+                data.error
+              );
+
+            } else {
+
+              console.log(
+                'OneSignal subscription connected to SmartTransit user.'
+              );
+
+            }
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            'OneSignal initialization failed:',
+            error
+          );
+
+
+          window.__smartTransitOneSignalInitStarted =
+            false;
+
+        }
+
+      }
+    );
+
+
+  }, []);
   useEffect(() => {
     async function loadUser() {
       try {
@@ -122,6 +247,7 @@ export default function PassengerDashboardPage() {
         await loadTravelHistory();
         await loadFrequentDestinations();
         await loadTravelSuggestions();
+        await loadNotifications();
       } catch (requestError) {
 
         console.error(
@@ -274,6 +400,91 @@ export default function PassengerDashboardPage() {
     } finally {
 
       setIsLoadingTravelSuggestions(false);
+
+    }
+  }
+  async function loadNotifications() {
+    try {
+      setIsLoadingNotifications(true);
+
+      const response = await fetch(
+        '/api/notifications',
+        {
+          cache: 'no-store',
+          credentials: 'include',
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setNotifications(
+          data.notifications || []
+        );
+
+        setUnreadNotificationCount(
+          data.unreadCount || 0
+        );
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Loading notifications failed:',
+        error
+      );
+
+    } finally {
+
+      setIsLoadingNotifications(false);
+
+    }
+  }
+  async function markNotificationAsRead( notificationId) {
+    try {
+
+      const response = await fetch(
+        `/api/notifications/${notificationId}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        console.error(
+          'Mark notification as read failed:',
+          data.error
+        );
+        return;
+      }
+
+      setNotifications((currentNotifications) =>
+        currentNotifications.map(
+          (notification) =>
+            notification._id === notificationId
+              ? {
+                  ...notification,
+                  read: true,
+                }
+              : notification
+        )
+      );
+
+      setUnreadNotificationCount(
+        (currentCount) =>
+          Math.max(0, currentCount - 1)
+      );
+
+    } catch (error) {
+
+      console.error(
+        'Mark notification as read error:',
+        error
+      );
 
     }
   }
@@ -713,7 +924,10 @@ export default function PassengerDashboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-
+      <Script
+        src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+        strategy="afterInteractive"
+      />
       <header className="border-b bg-white shadow-sm">
 
         <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-6 py-5">
@@ -735,7 +949,148 @@ export default function PassengerDashboardPage() {
 
 
           <div className="flex items-center gap-4">
+            
+          <div className="relative">
 
+            <button
+              type="button"
+              onClick={() =>
+                setShowNotifications(
+                  !showNotifications
+                )
+              }
+              className="relative flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-xl hover:bg-slate-200"
+              aria-label="Notifications"
+            >
+              🔔
+
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">
+                  {unreadNotificationCount > 9
+                    ? '9+'
+                    : unreadNotificationCount}
+                </span>
+              )}
+            </button>
+
+
+            {showNotifications && (
+
+              <div className="absolute right-0 z-50 mt-3 w-80 rounded-xl border border-slate-200 bg-white shadow-xl">
+
+                <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+
+                  <h3 className="font-bold text-slate-900">
+                    Notifications
+                  </h3>
+
+                  {unreadNotificationCount > 0 && (
+                    <span className="text-xs font-semibold text-blue-700">
+                      {unreadNotificationCount} unread
+                    </span>
+                  )}
+
+                </div>
+
+
+                <div className="max-h-96 overflow-y-auto">
+
+                  {isLoadingNotifications ? (
+
+                    <p className="p-4 text-sm text-slate-500">
+                      Loading notifications...
+                    </p>
+
+                  ) : notifications.length > 0 ? (
+
+                    <div>
+
+                      {notifications.map(
+                        (notification) => (
+
+                          <button
+                            type="button"
+                            key={notification._id}
+                            onClick={() => {
+                              if (!notification.read) {
+                                markNotificationAsRead(
+                                  notification._id
+                                );
+                              }
+                            }}
+                            className={`block w-full border-b border-slate-100 px-4 py-3 text-left ${
+                              notification.read
+                                ? 'bg-white'
+                                : 'bg-blue-50 hover:bg-blue-100'
+                            }`}
+                          >
+
+                            <div className="flex items-start gap-3">
+
+                              <span className="text-lg">
+                                {notification.type === 'delay'
+                                  ? '⏰'
+                                  : notification.type === 'cancellation'
+                                  ? '❌'
+                                  : notification.type === 'emergency'
+                                  ? '🚨'
+                                  : notification.type === 'schedule'
+                                  ? '📅'
+                                  : notification.type === 'diversion'
+                                  ? '🔀'
+                                  : '🔔'}
+                              </span>
+
+
+                              <div className="min-w-0 flex-1">
+
+                                <p className="text-sm font-semibold capitalize text-slate-900">
+                                  {notification.type}
+                                </p>
+
+                                <p className="mt-1 text-sm text-slate-600">
+                                  {notification.message}
+                                </p>
+
+                                <p className="mt-1 text-xs text-slate-400">
+                                  {notification.createdAt
+                                    ? new Date(
+                                        notification.createdAt
+                                      ).toLocaleString()
+                                    : ''}
+                                </p>
+
+                              </div>
+
+
+                              {!notification.read && (
+                                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                              )}
+
+                            </div>
+
+                          </button>
+
+                        )
+                      )}
+
+                    </div>
+
+                  ) : (
+
+                    <p className="p-4 text-sm text-slate-500">
+                      No notifications yet.
+                    </p>
+
+                  )}
+
+                </div>
+
+              </div>
+
+            )}
+
+          </div>
 
             {user?.profileImageUrl ? (
 
