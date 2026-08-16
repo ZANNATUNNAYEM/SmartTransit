@@ -2,6 +2,33 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  ArcElement,
+} from 'chart.js';
+import { Bar, Line, Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  ArcElement
+);
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -1670,59 +1697,145 @@ export default function AdminDashboardPage() {
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 page-break-inside">
                       <h3 className="text-lg font-bold text-slate-900">Route Popularity</h3>
                       <p className="text-xs text-slate-400">Total completed trip counts across transit routes</p>
-                      <div className="space-y-4">
-                        {(analyticsRouteFilter ? routePopularity.filter(r => r._id === analyticsRouteFilter) : routePopularity).length === 0 ? (
-                          <p className="text-sm text-slate-400 py-6 text-center">No route data available for the selected filters.</p>
-                        ) : (
-                          (analyticsRouteFilter ? routePopularity.filter(r => r._id === analyticsRouteFilter) : routePopularity).map((route, idx) => {
-                            const maxTrips = Math.max(...routePopularity.map(r => r.tripCount), 1);
-                            const percentage = (route.tripCount / maxTrips) * 100;
-                            return (
-                              <div key={route._id || idx} className="space-y-2">
-                                <div className="flex justify-between text-xs font-bold">
-                                  <span className="text-slate-700">{route.routeName}</span>
-                                  <span className="text-blue-600">{route.tripCount} Trips</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-                                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+                      
+                      {(() => {
+                        const dataList = analyticsRouteFilter
+                          ? routePopularity.filter(r => r._id === analyticsRouteFilter)
+                          : routePopularity;
+                        
+                        if (dataList.length === 0) {
+                          return <p className="text-sm text-slate-400 py-20 text-center">No route popularity data available.</p>;
+                        }
+
+                        const labels = dataList.map(r => r.routeName);
+                        const tripCounts = dataList.map(r => r.tripCount);
+
+                        const chartData = {
+                          labels,
+                          datasets: [
+                            {
+                              label: 'Trips Completed',
+                              data: tripCounts,
+                              backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                              hoverBackgroundColor: 'rgba(37, 99, 235, 1)',
+                              borderRadius: 8,
+                              borderSkipped: false,
+                            }
+                          ]
+                        };
+
+                        const chartOptions = {
+                          indexAxis: 'y',
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                              backgroundColor: '#1e293b',
+                              titleColor: '#ffffff',
+                              bodyColor: '#ffffff',
+                              padding: 10,
+                              cornerRadius: 8
+                            }
+                          },
+                          scales: {
+                            x: {
+                              grid: { color: 'rgba(241, 245, 249, 1)' },
+                              ticks: { font: { weight: 'bold' }, color: '#94a3b8' }
+                            },
+                            y: {
+                              grid: { display: false },
+                              ticks: { font: { weight: 'bold' }, color: '#475569' }
+                            }
+                          }
+                        };
+
+                        const dynamicHeight = Math.max(256, dataList.length * 35);
+
+                        return (
+                          <div style={{ height: `${dynamicHeight}px` }} className="relative">
+                            <Bar data={chartData} options={chartOptions} />
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Card 2: Average Delay by Route */}
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 page-break-inside">
                       <h3 className="text-lg font-bold text-slate-900">Average Delay by Route</h3>
                       <p className="text-xs text-slate-400">Average trip delay minutes per route</p>
-                      <div className="space-y-4">
-                        {(analyticsRouteFilter ? averageDelays.filter(r => r._id === analyticsRouteFilter) : averageDelays).length === 0 ? (
-                          <p className="text-sm text-slate-400 py-6 text-center">No delay data available for the selected filters.</p>
-                        ) : (
-                          (analyticsRouteFilter ? averageDelays.filter(r => r._id === analyticsRouteFilter) : averageDelays).map((route, idx) => {
-                            const maxDelay = Math.max(...averageDelays.map(r => r.averageDelayMinutes), 1);
-                            const percentage = (route.averageDelayMinutes / maxDelay) * 100;
-                            const isHighDelay = route.averageDelayMinutes > 10;
-                            const isWarningDelay = route.averageDelayMinutes >= 5 && route.averageDelayMinutes <= 10;
-                            const barColor = isHighDelay ? 'from-red-500 to-rose-600' : isWarningDelay ? 'from-amber-400 to-orange-500' : 'from-emerald-400 to-green-500';
-                            const textColor = isHighDelay ? 'text-red-600' : isWarningDelay ? 'text-orange-500' : 'text-green-600';
-                            
-                            return (
-                              <div key={route._id || idx} className="space-y-2">
-                                <div className="flex justify-between text-xs font-bold">
-                                  <span className="text-slate-700">{route.routeName}</span>
-                                  <span className={textColor}>{route.averageDelayMinutes} mins avg</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-                                  <div className={`bg-gradient-to-r ${barColor} h-full rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+
+                      {(() => {
+                        const dataList = analyticsRouteFilter
+                          ? averageDelays.filter(r => r._id === analyticsRouteFilter)
+                          : averageDelays;
+
+                        if (dataList.length === 0) {
+                          return <p className="text-sm text-slate-400 py-20 text-center">No delay data available.</p>;
+                        }
+
+                        const labels = dataList.map(r => r.routeName);
+                        const delayMins = dataList.map(r => r.averageDelayMinutes);
+
+                        // Color mapping: red for > 10, orange for 5-10, green for < 5 mins
+                        const backgroundColors = delayMins.map(val => {
+                          if (val > 10) return 'rgba(239, 68, 68, 0.8)';
+                          if (val >= 5) return 'rgba(245, 158, 11, 0.8)';
+                          return 'rgba(16, 185, 129, 0.8)';
+                        });
+                        const hoverColors = delayMins.map(val => {
+                          if (val > 10) return 'rgba(220, 38, 38, 1)';
+                          if (val >= 5) return 'rgba(217, 119, 6, 1)';
+                          return 'rgba(5, 150, 105, 1)';
+                        });
+
+                        const chartData = {
+                          labels,
+                          datasets: [
+                            {
+                              label: 'Avg. Delay (Minutes)',
+                              data: delayMins,
+                              backgroundColor: backgroundColors,
+                              hoverBackgroundColor: hoverColors,
+                              borderRadius: 8,
+                            }
+                          ]
+                        };
+
+                        const chartOptions = {
+                          indexAxis: 'y',
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                              backgroundColor: '#1e293b',
+                              titleColor: '#ffffff',
+                              bodyColor: '#ffffff',
+                              padding: 10,
+                              cornerRadius: 8
+                            }
+                          },
+                          scales: {
+                            x: {
+                              grid: { color: 'rgba(241, 245, 249, 1)' },
+                              ticks: { font: { weight: 'bold' }, color: '#94a3b8' }
+                            },
+                            y: {
+                              grid: { display: false },
+                              ticks: { font: { weight: 'bold' }, color: '#475569' }
+                            }
+                          }
+                        };
+
+                        const dynamicHeight = Math.max(256, dataList.length * 35);
+
+                        return (
+                          <div style={{ height: `${dynamicHeight}px` }} className="relative">
+                            <Bar data={chartData} options={chartOptions} />
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -1747,75 +1860,141 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                       <p className="text-xs text-slate-400">Grouped by {completedTripsGroup} view</p>
-                      
-                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                        {completedTrips.length === 0 ? (
-                          <p className="text-sm text-slate-400 py-6 text-center">No completed trip data found.</p>
-                        ) : (
-                          completedTrips.map((item, idx) => {
-                            const maxVal = Math.max(...completedTrips.map(c => c.completedCount), 1);
-                            const percent = (item.completedCount / maxVal) * 100;
-                            return (
-                              <div key={item._id || idx} className="space-y-1">
-                                <div className="flex justify-between text-xs">
-                                  <span className="font-semibold text-slate-700 truncate max-w-[150px]">{item.label}</span>
-                                  <span className="font-bold text-slate-900">{item.completedCount} trips</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                  <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${percent}%` }}></div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+
+                      {completedTrips.length === 0 ? (
+                        <p className="text-sm text-slate-400 py-20 text-center">No completed trip data found.</p>
+                      ) : (
+                        (() => {
+                          const labels = completedTrips.map(item => item.label);
+                          const counts = completedTrips.map(item => item.completedCount);
+
+                          // Color palette generators
+                          const baseColors = [
+                            'rgba(99, 102, 241, 0.8)',  // Indigo
+                            'rgba(16, 185, 129, 0.8)',  // Emerald
+                            'rgba(245, 158, 11, 0.8)',  // Amber
+                            'rgba(239, 68, 68, 0.8)',   // Red
+                            'rgba(14, 165, 233, 0.8)',  // Sky
+                            'rgba(139, 92, 246, 0.8)',  // Purple
+                          ];
+
+                          const chartData = {
+                            labels,
+                            datasets: [
+                              {
+                                data: counts,
+                                backgroundColor: baseColors.slice(0, counts.length).concat(
+                                  Array.from({ length: Math.max(0, counts.length - baseColors.length) }, (_, i) => `hsla(${(i * 45) % 360}, 70%, 60%, 0.8)`)
+                                ),
+                                borderWidth: 2,
+                                borderColor: '#ffffff',
+                              }
+                            ]
+                          };
+
+                          const chartOptions = {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: {
+                                position: 'bottom',
+                                labels: {
+                                  boxWidth: 10,
+                                  font: { size: 10, weight: 'bold' },
+                                  color: '#64748b'
+                                }
+                              },
+                              tooltip: {
+                                backgroundColor: '#1e293b',
+                                padding: 10,
+                                cornerRadius: 8
+                              }
+                            }
+                          };
+
+                          return (
+                            <div className="h-64 relative">
+                              <Doughnut data={chartData} options={chartOptions} />
+                            </div>
+                          );
+                        })()
+                      )}
                     </div>
 
-                    {/* Card 2: Peak Hours SVG chart */}
+                    {/* Card 2: Peak Hours Line chart */}
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 lg:col-span-2 page-break-inside">
                       <h3 className="text-lg font-bold text-slate-900">Peak Travel Hours</h3>
                       <p className="text-xs text-slate-400">Distribution of passenger travel activity and trip start times by hour of day</p>
-                      
+
                       {peakHours.length === 0 ? (
-                        <p className="text-sm text-slate-400 py-10 text-center">No passenger activity records found.</p>
+                        <p className="text-sm text-slate-400 py-20 text-center">No passenger activity records found.</p>
                       ) : (
-                        <div>
-                          {/* SVG Bar Chart */}
-                          <div className="w-full h-48 mt-4 flex items-end justify-between border-b border-slate-200 pb-2 relative">
-                            {Array.from({ length: 24 }, (_, hour) => {
-                              const match = peakHours.find(p => p.hour === hour);
-                              const count = match ? match.tripCount : 0;
-                              const maxTrips = Math.max(...peakHours.map(p => p.tripCount), 1);
-                              const barHeightPercent = (count / maxTrips) * 80; // Max 80% height to leave room for labels
-                              
-                              return (
-                                <div key={hour} className="group flex-1 flex flex-col items-center h-full justify-end px-0.5 relative">
-                                  {/* Tooltip on Hover */}
-                                  <div className="absolute bottom-full mb-1 hidden group-hover:block bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-lg z-10 whitespace-nowrap">
-                                    {count} Trips
-                                  </div>
-                                  {/* Bar */}
-                                  <div
-                                    style={{ height: `${barHeightPercent || 2}%` }}
-                                    className={`w-full rounded-t-sm transition-all duration-300 ${
-                                      count > 0 ? 'bg-gradient-to-t from-blue-500 to-indigo-500 group-hover:from-blue-600 group-hover:to-indigo-600' : 'bg-slate-100'
-                                    }`}
-                                  ></div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {/* Hour labels */}
-                          <div className="flex justify-between text-[9px] font-bold text-slate-400 mt-2 px-1">
-                            <span>12 AM</span>
-                            <span>4 AM</span>
-                            <span>8 AM</span>
-                            <span>12 PM</span>
-                            <span>4 PM</span>
-                            <span>8 PM</span>
-                            <span>11 PM</span>
-                          </div>
-                        </div>
+                        (() => {
+                          const fullHours = Array.from({ length: 24 }, (_, i) => {
+                            const found = peakHours.find(p => p.hour === i);
+                            return { hour: i, count: found ? found.tripCount : 0 };
+                          });
+
+                          const labels = fullHours.map(item => {
+                            const hr = item.hour;
+                            if (hr === 0) return '12 AM';
+                            if (hr === 12) return '12 PM';
+                            return hr > 12 ? `${hr - 12} PM` : `${hr} AM`;
+                          });
+                          const dataPoints = fullHours.map(item => item.count);
+
+                          const chartData = {
+                            labels,
+                            datasets: [
+                              {
+                                label: 'Trips Started',
+                                data: dataPoints,
+                                borderColor: 'rgba(79, 70, 229, 1)',
+                                borderWidth: 3,
+                                pointBackgroundColor: 'rgba(79, 70, 229, 1)',
+                                pointHoverRadius: 6,
+                                tension: 0.4,
+                                fill: true,
+                                backgroundColor: (context) => {
+                                  const ctx = context.chart.ctx;
+                                  const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                                  gradient.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
+                                  gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+                                  return gradient;
+                                }
+                              }
+                            ]
+                          };
+
+                          const chartOptions = {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { display: false },
+                              tooltip: {
+                                backgroundColor: '#1e293b',
+                                padding: 10,
+                                cornerRadius: 8
+                              }
+                            },
+                            scales: {
+                              x: {
+                                grid: { display: false },
+                                ticks: { font: { weight: 'bold' }, color: '#94a3b8', maxTicksLimit: 12 }
+                              },
+                              y: {
+                                grid: { color: 'rgba(241, 245, 249, 1)' },
+                                ticks: { font: { weight: 'bold' }, color: '#94a3b8' }
+                              }
+                            }
+                          };
+
+                          return (
+                            <div className="h-64 relative">
+                              <Line data={chartData} options={chartOptions} />
+                            </div>
+                          );
+                        })()
                       )}
                     </div>
                   </div>
