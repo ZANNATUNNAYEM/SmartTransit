@@ -36,6 +36,16 @@ export default function AdminDashboardPage() {
   const [showAddScheduleModal, setShowAddScheduleModal] = useState(false);
   const [showAddStopModal, setShowAddStopModal] = useState(false);
 
+  // Notification Center states
+  const [notificationType, setNotificationType] = useState('delay');
+  const [notificationBusId, setNotificationBusId] = useState('');
+  const [delayMinutes, setDelayMinutes] = useState(10);
+  const [notificationRouteId, setNotificationRouteId] = useState('');
+  const [diversionDetails, setDiversionDetails] = useState('');
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [notificationSendMessage, setNotificationSendMessage] = useState('');
+  const [notificationSendError, setNotificationSendError] = useState('');
+
   // Add Bus Form State
   const [busForm, setBusForm] = useState({
     busNumber: '',
@@ -138,6 +148,87 @@ export default function AdminDashboardPage() {
 
     return () => clearInterval(intervalId);
   }, []);
+
+  // Send administrative notification
+  async function handleSendNotification(e) {
+    e.preventDefault();
+
+    setNotificationSendMessage('');
+    setNotificationSendError('');
+
+    if (notificationType === 'delay' && !notificationBusId) {
+      setNotificationSendError('Please select a bus.');
+      return;
+    }
+
+
+    try {
+      setIsSendingNotification(true);
+
+      let endpoint = '';
+      let body = {};
+
+
+      if (notificationType === 'delay') {
+        endpoint = '/api/notifications/bus-delay';
+
+        body = {
+          busId: notificationBusId,
+          delayMinutes: Number(delayMinutes),
+        };
+      }
+      if (notificationType === 'route_diversion') {
+
+        endpoint = '/api/notifications/route-diversion';
+
+        body = {
+          routeId: notificationRouteId,
+          diversionDetails,
+        };
+
+      }
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setNotificationSendError(
+          data.error || 'Failed to send notification.'
+        );
+        return;
+      }
+
+      setNotificationSendMessage(
+        data.message || 'Notification sent successfully.'
+      );
+
+      // Refresh notifications shown in the admin bell
+      await loadNotifications(true);
+
+      // Refresh bus status because delay API changes it
+      await fetchAllData();
+
+    } catch (error) {
+      console.error(
+        'Notification sending error:',
+        error
+      );
+
+      setNotificationSendError(
+        'Unable to send notification. Please try again.'
+      );
+    } finally {
+      setIsSendingNotification(false);
+    }
+  }
+
   async function handleLogout() {
     try {
       setIsLoggingOut(true);
@@ -524,7 +615,9 @@ export default function AdminDashboardPage() {
               { name: 'Route Planner', icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3' },
               { name: 'Live Tracking', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z' },
               { name: 'Schedules', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-              { name: 'Analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' }
+              { name: 'Analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+              { name: 'Notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'}
+            
             ].map((tab) => {
               const isActive = activeTab === tab.name;
               return (
@@ -1255,6 +1348,222 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: NOTIFICATION CENTER */}
+          {activeTab === 'Notifications' && (
+            <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
+
+              <div>
+                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  Notification Center
+                </h2>
+
+                <p className="text-slate-500 text-sm mt-1">
+                  Send real-time operational notifications to SmartTransit passengers.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-8">
+
+                {/* Notification Form */}
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-6">
+
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                        />
+                      </svg>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">
+                        Send Passenger Notification
+                      </h3>
+
+                      <p className="text-xs text-slate-400 mt-1">
+                        Notify passengers about operational changes.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form
+                    onSubmit={handleSendNotification}
+                    className="space-y-5"
+                  >
+
+                    {/* Notification Type */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                        Notification Type
+                      </label>
+
+                      <select
+                        value={notificationType}
+                        onChange={(e) =>
+                          setNotificationType(e.target.value)
+                        }
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="delay">
+                          Bus Delay
+                        </option>
+                        <option value="route_diversion">
+                          Route Diversion
+                        </option>
+                      </select>
+                    </div>
+
+                    {/* Bus / Route Selector */}
+                    {notificationType === 'delay' ? (
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Select Bus
+                        </label>
+
+                        <select
+                          value={notificationBusId}
+                          onChange={(e) =>
+                            setNotificationBusId(e.target.value)
+                          }
+                          required
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700"
+                        >
+                          <option value="">
+                            Select bus...
+                          </option>
+
+                          {buses.map((bus) => (
+                            <option key={bus._id} value={bus._id}>
+                              {bus.busNumber}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Select Route
+                        </label>
+
+                        <select
+                          value={notificationRouteId}
+                          onChange={(e) =>
+                            setNotificationRouteId(e.target.value)
+                          }
+                          required
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700"
+                        >
+                          <option value="">
+                            Select route...
+                          </option>
+
+                          {routes.map((route) => (
+                            <option key={route._id} value={route._id}>
+                              {route.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {notificationType === 'route_diversion' && (
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Diversion Details
+                        </label>
+
+                        <textarea
+                          value={diversionDetails}
+                          onChange={(e) =>
+                            setDiversionDetails(e.target.value)
+                          }
+                          placeholder="Enter route diversion details..."
+                          required
+                          rows="4"
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        />
+                      </div>
+                    )}
+                    {/* Delay Minutes */}
+                    {notificationType === 'delay' && (
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Delay Duration (Minutes)
+                        </label>
+
+                        <input
+                          type="number"
+                          min="1"
+                          max="180"
+                          value={delayMinutes}
+                          onChange={(e) =>
+                            setDelayMinutes(e.target.value)
+                          }
+                          required
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        />
+                      </div>
+                    )}
+                    {/* Preview */}
+                    <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+                        Notification Preview
+                      </p>
+
+                      <p className="mt-2 text-sm text-amber-900">
+                        {notificationBusId
+                          ? `Bus ${
+                              buses.find(
+                                (bus) =>
+                                  bus._id === notificationBusId
+                              )?.busNumber || ''
+                            } is delayed by ${delayMinutes} minutes.`
+                          : 'Select a bus to preview the notification.'}
+                      </p>
+                    </div>
+
+                    {/* Error */}
+                    {notificationSendError && (
+                      <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm font-semibold text-rose-600">
+                        {notificationSendError}
+                      </div>
+                    )}
+
+                    {/* Success */}
+                    {notificationSendMessage && (
+                      <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-600">
+                        {notificationSendMessage}
+                      </div>
+                    )}
+
+                    {/* Send Button */}
+                    <button
+                      type="submit"
+                      disabled={isSendingNotification}
+                      className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all shadow-lg shadow-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSendingNotification
+                        ? 'Sending Notification...'
+                        : '🔔 Send Delay Notification'}
+                    </button>
+
+                  </form>
+                </div>
+
+
+
               </div>
             </div>
           )}
