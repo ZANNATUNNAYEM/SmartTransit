@@ -6,14 +6,23 @@
     "dev": "node server.js",
     "build": "next build",
     "start": "node server.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node scripts/seed.mjs",
+    "seed:admin": "node scripts/seed-admin.mjs"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "chart.js": "^4.5.1",
+    "cloudinary": "^2.10.0",
     "ioredis": "^5.11.1",
+    "leaflet": "^1.9.4",
     "mongoose": "^9.7.4",
     "next": "16.2.10",
+    "nodemailer": "^9.0.4",
     "react": "19.2.4",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "19.2.4",
+    "react-leaflet": "^5.0.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
   },

@@ -28,7 +28,7 @@ Run the following command to build the Docker image and start the containers in 
 docker compose up -d --build
 ```
 This command spins up:
-- **Next.js Application** on `http://localhost:3000`
+- **Next.js Application** on `http://localhost:1681`
 - **MongoDB Database** on `localhost:27017`
 - **Redis Cache** on `localhost:6379` (password protected)
 
@@ -62,10 +62,10 @@ docker compose down -v
 
 | Service | Port | Endpoint / Target |
 | :--- | :--- | :--- |
-| **Next.js App + Socket.io** | `3000` | [http://localhost:3000](http://localhost:3000) |
+| **Next.js App + Socket.io** | `1681` | [http://localhost:1681](http://localhost:1681) |
 | **MongoDB Database** | `27017` | `mongodb://localhost:27017` |
 | **Redis Cache** | `6379` | `redis://localhost:6379` |
 | **Mongo Express UI (Dev only)** | `8081` | [http://localhost:8081](http://localhost:8081) |
 
 To verify that the database and cache connections are active and fully operational, you can visit the health check endpoint:
-- **Health Check Route**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
+- **Health Check Route**: [http://localhost:1681/api/health](http://localhost:1681/api/health)
