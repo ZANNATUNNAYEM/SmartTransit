@@ -169,9 +169,7 @@ export async function POST(request) {
     const journeys =
       await PassengerJourney.find({
         tripId: trip._id,
-        status: {
-          $ne: 'cancelled',
-        },
+        status: 'active',
       }).select(
         'passengerId'
       );
