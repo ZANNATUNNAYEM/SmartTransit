@@ -142,9 +142,7 @@ export async function POST(request) {
     const journeys =
       await PassengerJourney.find({
         busId: bus._id,
-        status: {
-          $ne: 'cancelled',
-        },
+        status: 'active'
       }).select(
         'passengerId'
       );

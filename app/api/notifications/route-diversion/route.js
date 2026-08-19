@@ -150,9 +150,7 @@ export async function POST(request) {
             busId: {
               $in: busIds,
             },
-            status: {
-              $ne: 'cancelled',
-            },
+            status: 'active',
           }).select(
             'passengerId'
           )

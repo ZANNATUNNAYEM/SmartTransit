@@ -849,6 +849,43 @@ export default function PassengerDashboardPage() {
     }
   }
 
+  async function updateJourneyStatus(journeyId, status) {
+    try {
+      const response = await fetch(
+        `/api/passenger/journeys/${journeyId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            status,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Unable to update journey');
+        return;
+      }
+
+      await loadTravelHistory();
+
+      alert(`Journey ${status}`);
+
+    } catch (error) {
+      console.error(
+        'Updating journey failed:',
+        error
+      );
+
+      alert('Unable to update journey');
+    }
+  }
+
   async function handleLogout() {
 
     try {
@@ -1826,6 +1863,107 @@ export default function PassengerDashboardPage() {
         </div>
 
         )}
+
+        <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+
+          <h3 className="text-xl font-bold text-slate-900">
+            🚌 Active Journey
+          </h3>
+
+
+          {travelHistory.filter(
+            (journey) => journey.status === "active"
+          ).length > 0 ? (
+
+            <div className="mt-5 space-y-3">
+
+              {travelHistory
+                .filter(
+                  (journey) => journey.status === "active"
+                )
+                .map((journey) => (
+
+                  <div
+                    key={journey._id}
+                    className="rounded-xl border border-blue-200 bg-blue-50 p-4"
+                  >
+
+                    <p className="font-semibold text-slate-900">
+                      🚌 {journey.busId?.busNumber || 'Bus'}
+                    </p>
+
+
+                    <p className="mt-1 text-sm text-slate-600">
+                      🛣 {journey.routeId?.name ||
+                        'Route information unavailable'}
+                    </p>
+
+
+                    <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+
+                      <p>
+                        📍 From:{' '}
+                        {journey.fromStopId?.name ||
+                          'Not specified'}
+                      </p>
+
+
+                      <p>
+                        📍 To:{' '}
+                        {journey.toStopId?.name ||
+                          'Not specified'}
+                      </p>
+
+                    </div>
+
+
+                    <div className="mt-4 flex gap-3">
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateJourneyStatus(
+                            journey._id,
+                            "completed"
+                          )
+                        }
+                        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+                      >
+                        Complete Journey
+                      </button>
+
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateJourneyStatus(
+                            journey._id,
+                            "cancelled"
+                          )
+                        }
+                        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                      >
+                        Cancel Journey
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                ))}
+
+            </div>
+
+          ) : (
+
+            <p className="mt-4 text-sm text-slate-500">
+              No active journey.
+            </p>
+
+          )}
+
+        </article>
+
         <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
 
           <h3 className="text-xl font-bold text-slate-900">
@@ -1842,7 +1980,7 @@ export default function PassengerDashboardPage() {
 
             <div className="mt-5 space-y-3">
 
-              {travelHistory.map((journey) => (
+              {travelHistory.filter( (journey) => journey.status === "completed" || journey.status === "cancelled").map((journey) => (
 
                 <div
                   key={journey._id}

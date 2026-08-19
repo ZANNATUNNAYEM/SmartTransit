@@ -14,8 +14,50 @@ import {
   LostItem,
   Notification
 } from '../models/index.js';
+import dns from 'dns';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/smarttransit';
+// Force Google DNS for Atlas SRV resolution to prevent querySrv ECONNREFUSED error
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+// Parse env files
+let mongodbUri = process.env.MONGODB_URI;
+
+if (!mongodbUri) {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
+    // Check .env.local first, then fallback to .env
+    const envLocalPath = path.resolve(__dirname, '../.env.local');
+    const envPath = path.resolve(__dirname, '../.env');
+    
+    let envFileToRead = null;
+    if (fs.existsSync(envLocalPath)) {
+      envFileToRead = envLocalPath;
+    } else if (fs.existsSync(envPath)) {
+      envFileToRead = envPath;
+    }
+
+    if (envFileToRead) {
+      const envContent = fs.readFileSync(envFileToRead, 'utf8');
+      const lines = envContent.split('\n');
+      for (const line of lines) {
+        const match = line.match(/^\s*MONGODB_URI\s*=\s*(.*)\s*$/);
+        if (match) {
+          mongodbUri = match[1].trim().replace(/^['"]|['"]$/g, '');
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read env files:', err.message);
+  }
+}
+
+const MONGODB_URI = mongodbUri || 'mongodb://localhost:27017/smarttransit';
 
 async function seed() {
   console.log('Connecting to database...');
