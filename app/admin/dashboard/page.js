@@ -72,17 +72,6 @@ export default function AdminDashboardPage() {
   const [fleetSubView, setFleetSubView] = useState('buses'); // 'buses' | 'routes' | 'drivers' | 'trips'
   const [trips, setTrips] = useState([]);
 
-  // Messaging module states
-  const [msgTarget, setMsgTarget] = useState('all'); // 'all' | 'passengers' | 'drivers'
-  const [msgType, setMsgType] = useState('announcement'); // 'announcement' | 'emergency' | 'schedule' | 'diversion' | 'delay'
-  const [msgTitle, setMsgTitle] = useState('');
-  const [msgBody, setMsgBody] = useState('');
-  const [msgSending, setMsgSending] = useState(false);
-  const [msgHistory, setMsgHistory] = useState([
-    { id: '1', title: 'System Maintenance Scheduled', body: 'The transit tracking service will be undergoing maintenance tonight from 2 AM to 4 AM.', target: 'all', type: 'announcement', sentAt: new Date(Date.now() - 3600000).toLocaleString() },
-    { id: '2', title: 'Route 101 Diversion Details', body: 'Due to road construction at Motijheel, Route 101 will divert through Baily Road.', target: 'all', type: 'diversion', sentAt: new Date(Date.now() - 7200000).toLocaleString() }
-  ]);
-
   // Requests page states
   const [requestFilter, setRequestFilter] = useState('pending'); // 'pending' or 'all'
 
@@ -103,7 +92,11 @@ export default function AdminDashboardPage() {
   const [notificationBusId, setNotificationBusId] = useState('');
   const [delayMinutes, setDelayMinutes] = useState(10);
   const [notificationRouteId, setNotificationRouteId] = useState('');
+  const [notificationScheduleId, setNotificationScheduleId] = useState('');
   const [diversionDetails, setDiversionDetails] = useState('');
+  const [notificationTripId, setNotificationTripId] = useState('');
+  const [cancellationMessage, setCancellationMessage] = useState('');
+  const [emergencyMessage, setEmergencyMessage] = useState('');
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [notificationSendMessage, setNotificationSendMessage] = useState('');
   const [notificationSendError, setNotificationSendError] = useState('');
@@ -268,7 +261,30 @@ export default function AdminDashboardPage() {
       fetchTrips();
     }
   }, [activeTab, fleetSubView]);
+  useEffect(() => {
+    if (activeTab === 'Notifications' && notificationType === 'trip_cancellation') {
 
+      const fetchTrips = async () => {
+        try {
+          const res = await fetch('/api/admin/trips');
+
+          if (res.ok) {
+            const data = await res.json();
+            setTrips(data);
+          }
+
+        } catch (error) {
+          console.error(
+            'Error loading trips:',
+            error
+          );
+        }
+      };
+
+      fetchTrips();
+    }
+
+  }, [activeTab, notificationType]);
   useEffect(() => {
     fetchAllData();
     loadNotifications(true);
@@ -319,6 +335,41 @@ export default function AdminDashboardPage() {
         };
 
       }
+      if (notificationType === 'schedule_change') {
+        const selectedSchedule = schedules.find(
+          (schedule) => schedule._id === notificationScheduleId
+        );
+
+        endpoint = '/api/notifications/schedule-change';
+
+        body = {
+          scheduleId: notificationScheduleId,
+          departureTimes: selectedSchedule?.departureTimes || [],
+          frequency: selectedSchedule?.frequency || '',
+        };
+      }    
+
+      if (notificationType === 'trip_cancellation') {
+
+        endpoint = '/api/notifications/trip-cancellation';
+
+        body = {
+          tripId: notificationTripId,
+          message: cancellationMessage,
+        };
+
+      }
+
+      if (notificationType === 'emergency') {
+
+        endpoint = '/api/notifications/emergency';
+
+        body = {
+          message: emergencyMessage,
+        };
+
+      }
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -742,30 +793,7 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // Handle Simulated Push Notifications
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!msgTitle || !msgBody) {
-      alert('Please fill in Title and Message Body');
-      return;
-    }
-    setMsgSending(true);
-    setTimeout(() => {
-      const newMsg = {
-        id: String(Date.now()),
-        title: msgTitle,
-        body: msgBody,
-        target: msgTarget,
-        type: msgType,
-        sentAt: new Date().toLocaleString()
-      };
-      setMsgHistory(prev => [newMsg, ...prev]);
-      setMsgTitle('');
-      setMsgBody('');
-      setMsgSending(false);
-      alert('Notification sent successfully (simulation)!');
-    }, 1000);
-  };
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans antialiased selection:bg-blue-500 selection:text-white">
@@ -794,10 +822,6 @@ export default function AdminDashboardPage() {
               { 
                 name: 'Notifications', 
                 icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'
-              },
-              { 
-                name: 'Messaging', 
-                icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
               }
             ].map((tab) => {
               const isActive = activeTab === tab.name;
@@ -2273,188 +2297,6 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* VIEW: MESSAGING */}
-          {activeTab === 'Messaging' && (
-            <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
-              {/* Header Title */}
-              <div>
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Push Notifications & Messaging</h2>
-                <p className="text-slate-500 text-sm mt-1">Compose and send transit notifications, system alerts, delays, and schedule warnings to commuters and drivers.</p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Column 1 & 2: Compose Form */}
-                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-                  <h3 className="text-lg font-bold text-slate-900">Compose Push Notification</h3>
-                  
-                  <form onSubmit={handleSendMessage} className="space-y-6">
-                    {/* Audience Selector */}
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Target Audience</label>
-                      <select
-                        value={msgTarget}
-                        onChange={(e) => setMsgTarget(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 font-semibold"
-                      >
-                        <option value="all">All Transit Users (Passengers & Drivers)</option>
-                        <option value="passengers">Commuters / Passengers Only</option>
-                        <option value="drivers">Drivers Only</option>
-                      </select>
-                    </div>
-
-                    {/* Alert Type Cards */}
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Notification Category / Alert Type</label>
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                        {[
-                          { id: 'announcement', label: 'Announcement', color: 'border-blue-200 text-blue-600 bg-blue-50/40', activeStyle: 'ring-2 ring-blue-500 bg-blue-50 border-blue-300' },
-                          { id: 'emergency', label: 'Emergency', color: 'border-red-200 text-red-600 bg-red-50/40', activeStyle: 'ring-2 ring-red-500 bg-red-50 border-red-300' },
-                          { id: 'schedule', label: 'Schedule Change', color: 'border-purple-200 text-purple-600 bg-purple-50/40', activeStyle: 'ring-2 ring-purple-500 bg-purple-50 border-purple-300' },
-                          { id: 'diversion', label: 'Route Diversion', color: 'border-orange-200 text-orange-600 bg-orange-50/40', activeStyle: 'ring-2 ring-orange-500 bg-orange-50 border-orange-300' },
-                          { id: 'delay', label: 'Bus Delay', color: 'border-amber-200 text-amber-600 bg-amber-50/40', activeStyle: 'ring-2 ring-amber-500 bg-amber-50 border-amber-300' }
-                        ].map((type) => {
-                          const isActive = msgType === type.id;
-                          return (
-                            <button
-                              key={type.id}
-                              type="button"
-                              onClick={() => setMsgType(type.id)}
-                              className={`p-3 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-150 ${
-                                isActive ? type.activeStyle : `${type.color} opacity-70 hover:opacity-100`
-                              }`}
-                            >
-                              <span className="text-xs font-bold mt-1.5">{type.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Title */}
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Notification Title</label>
-                      <input
-                        type="text"
-                        required
-                        value={msgTitle}
-                        onChange={(e) => setMsgTitle(e.target.value)}
-                        placeholder="e.g. Schedule Change for Route 101"
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700"
-                      />
-                    </div>
-
-                    {/* Body */}
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Message Body</label>
-                      <textarea
-                        required
-                        rows="4"
-                        value={msgBody}
-                        onChange={(e) => setMsgBody(e.target.value)}
-                        placeholder="Type notification message details here..."
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 resize-none"
-                      />
-                    </div>
-
-                    {/* Send Button */}
-                    <button
-                      type="submit"
-                      disabled={msgSending}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/15 flex items-center justify-center space-x-2 transition-all duration-150 disabled:opacity-50 cursor-pointer"
-                    >
-                      {msgSending ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Pushed Broadcast alert...</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                          </svg>
-                          <span>Broadcast Push Notification</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </div>
-
-                {/* Column 3: Live Preview & Sent History */}
-                <div className="space-y-8">
-                  {/* Smartphone Live Preview */}
-                  <div className="bg-slate-900 border border-slate-800 rounded-[32px] p-4 shadow-2xl relative max-w-sm mx-auto overflow-hidden">
-                    {/* Speaker & Camera notch */}
-                    <div className="w-24 h-4 bg-black rounded-full mx-auto mb-6 flex items-center justify-center">
-                      <div className="w-2 h-2 bg-slate-800 rounded-full"></div>
-                    </div>
-
-                    <div className="bg-slate-955 rounded-2xl h-[280px] p-4 flex flex-col justify-start relative overflow-hidden bg-cover bg-center">
-                      <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 to-black/80 z-0 pointer-events-none"></div>
-
-                      <div className="z-10 w-full">
-                        {/* Status bar */}
-                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold mb-4 px-1">
-                          <span>SmartTransit Mobile</span>
-                          <span>9:41 AM</span>
-                        </div>
-
-                        {/* Push alert banner */}
-                        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4 shadow-lg animate-scaleIn">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center text-white text-[9px] font-extrabold">
-                              ST
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-[10px] font-bold text-slate-100 uppercase tracking-wider">
-                                {msgType} alert
-                              </div>
-                              <div className="text-[9px] text-slate-400 font-medium">To: {msgTarget}</div>
-                            </div>
-                            <span className="text-[9px] text-slate-400 font-semibold">now</span>
-                          </div>
-                          <h4 className="text-xs font-bold text-slate-100 truncate">{msgTitle || 'Demo Alert Title'}</h4>
-                          <p className="text-[10px] text-slate-300 leading-relaxed mt-1 line-clamp-3">
-                            {msgBody || 'Fill compose form message to preview what users will see on their mobile phones...'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* History log */}
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-                    <h3 className="text-lg font-bold text-slate-900">Broadcasting Logs</h3>
-                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-                      {msgHistory.map((history) => {
-                        const typeColors = {
-                          announcement: 'bg-blue-50 text-blue-600',
-                          emergency: 'bg-red-50 text-red-600',
-                          schedule: 'bg-purple-50 text-purple-600',
-                          diversion: 'bg-orange-50 text-orange-600',
-                          delay: 'bg-amber-50 text-amber-600'
-                        };
-                        return (
-                          <div key={history.id} className="border-b border-slate-100 pb-3 last:border-none last:pb-0 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                                typeColors[history.type] || 'bg-slate-50 text-slate-600'
-                              }`}>
-                                {history.type}
-                              </span>
-                              <span className="text-[9px] text-slate-400 font-semibold">{history.sentAt}</span>
-                            </div>
-                            <h4 className="text-xs font-bold text-slate-800">{history.title}</h4>
-                            <p className="text-[10px] text-slate-500 leading-normal line-clamp-2">{history.body}</p>
-                            <div className="text-[9px] font-semibold text-slate-400">Target: <span className="capitalize">{history.target}</span></div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* VIEW: NOTIFICATION CENTER */}
           {activeTab === 'Notifications' && (
@@ -2527,6 +2369,15 @@ export default function AdminDashboardPage() {
                         <option value="route_diversion">
                           Route Diversion
                         </option>
+                        <option value="schedule_change">
+                          Schedule Change
+                        </option>
+                        <option value="trip_cancellation">
+                          Trip Cancellation
+                        </option>
+                        <option value="emergency">
+                          Emergency Alert
+                        </option>
                       </select>
                     </div>
 
@@ -2556,32 +2407,13 @@ export default function AdminDashboardPage() {
                           ))}
                         </select>
                       </div>
-                    ) : (
+                    ) : notificationType === 'route_diversion' ? (
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                          Select Route
-                        </label>
-
-                        <select
-                          value={notificationRouteId}
-                          onChange={(e) =>
-                            setNotificationRouteId(e.target.value)
-                          }
-                          required
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700"
-                        >
-                          <option value="">
-                            Select route...
-                          </option>
-
-                          {routes.map((route) => (
-                            <option key={route._id} value={route._id}>
-                              {route.name}
-                            </option>
-                          ))}
-                        </select>
+                        Select Route...
                       </div>
-                    )}
+                    ) : null}
+
+                    {/* Diversion Details */}
                     {notificationType === 'route_diversion' && (
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
@@ -2600,6 +2432,112 @@ export default function AdminDashboardPage() {
                         />
                       </div>
                     )}
+
+                    {/* Schedule Change */}
+                    {notificationType === 'schedule_change' && (
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Select Schedule
+                        </label>
+
+                        <select
+                          value={notificationScheduleId}
+                          onChange={(e) =>
+                            setNotificationScheduleId(e.target.value)
+                          }
+                          required
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700"
+                        >
+                          <option value="">
+                            Select schedule...
+                          </option>
+
+                          {schedules.map((schedule) => (
+                            <option
+                              key={schedule._id}
+                              value={schedule._id}
+                            >
+                              {schedule.departureTimes?.join(', ')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}  
+                         
+                    {/* Trip Cancellation */}
+                    {notificationType === 'trip_cancellation' && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                            Select Trip
+                          </label>
+
+                          <select
+                            value={notificationTripId}
+                            onChange={(e) =>
+                              setNotificationTripId(e.target.value)
+                            }
+                            required
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700"
+                          >
+                            <option value="">
+                              Select trip...
+                            </option>
+
+                            {trips.filter( (trip) => trip.status === 'running' || trip.status === 'scheduled' || trip.status === 'delayed' ).map((trip) => (
+                              <option
+                                key={trip._id}
+                                value={trip._id}
+                              >
+                                {trip.busId?.busNumber || 'Trip'} 
+                                - {trip.status}
+                              </option>
+                            ))}
+
+                          </select>
+                        </div>
+
+
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                            Cancellation Message
+                          </label>
+
+                          <textarea
+                            value={cancellationMessage}
+                            onChange={(e) =>
+                              setCancellationMessage(e.target.value)
+                            }
+                            placeholder="Enter cancellation reason..."
+                            required
+                            rows="4"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700"
+                          />
+
+                        </div>
+                      </>
+                    )}
+
+                    {/* Emergency Alert */}
+                    {notificationType === 'emergency' && (
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Emergency Message
+                        </label>
+
+                        <textarea
+                          value={emergencyMessage}
+                          onChange={(e) =>
+                            setEmergencyMessage(e.target.value)
+                          }
+                          placeholder="Enter emergency alert message..."
+                          required
+                          rows="4"
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700"
+                        />
+                      </div>
+                    )}
+
                     {/* Delay Minutes */}
                     {notificationType === 'delay' && (
                       <div>
@@ -2627,14 +2565,29 @@ export default function AdminDashboardPage() {
                       </p>
 
                       <p className="mt-2 text-sm text-amber-900">
-                        {notificationBusId
+
+                        {notificationType === 'delay' && notificationBusId
                           ? `Bus ${
                               buses.find(
                                 (bus) =>
                                   bus._id === notificationBusId
                               )?.busNumber || ''
                             } is delayed by ${delayMinutes} minutes.`
-                          : 'Select a bus to preview the notification.'}
+
+                          : notificationType === 'route_diversion'
+                          ? `Route diversion: ${diversionDetails || 'No details entered.'}`
+
+                          : notificationType === 'schedule_change'
+                          ? `Schedule changed for selected schedule.`
+
+                          : notificationType === 'trip_cancellation'
+                          ? `Trip cancelled: ${cancellationMessage || 'No reason provided.'}`
+
+                          : notificationType === 'emergency'
+                          ? `Emergency Alert: ${emergencyMessage || 'No message entered.'}`
+
+                          : 'Select notification type.'}
+
                       </p>
                     </div>
 
@@ -2658,9 +2611,19 @@ export default function AdminDashboardPage() {
                       disabled={isSendingNotification}
                       className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all shadow-lg shadow-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isSendingNotification
-                        ? 'Sending Notification...'
-                        : '🔔 Send Delay Notification'}
+                      🔔 {
+                        notificationType === 'delay'
+                          ? 'Send Delay Notification'
+                          : notificationType === 'route_diversion'
+                          ? 'Send Route Diversion Notification'
+                          : notificationType === 'schedule_change'
+                          ? 'Send Schedule Change Notification'
+                          : notificationType === 'trip_cancellation'
+                          ? 'Send Trip Cancellation Notification'
+                          : notificationType === 'emergency'
+                          ? 'Send Emergency Alert'
+                          : 'Send Notification'
+                      }
                     </button>
 
                   </form>
