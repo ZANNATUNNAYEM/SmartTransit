@@ -88,6 +88,24 @@ export default function PassengerDashboardPage() {
   const [isFindingStops, setIsFindingStops] = useState(false);
   const [liveBus, setLiveBus] = useState(null);
   const [isLoadingLiveBus, setIsLoadingLiveBus] = useState(true);
+
+  // Complaints states
+  const [complaints, setComplaints] = useState([]);
+  const [isLoadingComplaints, setIsLoadingComplaints] = useState(false);
+  const [showComplaintForm, setShowComplaintForm] = useState(false);
+  const [complaintCategory, setComplaintCategory] = useState('Service Delay');
+  const [complaintDescription, setComplaintDescription] = useState('');
+  const [complaintBusId, setComplaintBusId] = useState('');
+  const [complaintRouteId, setComplaintRouteId] = useState('');
+  const [complaintMessage, setComplaintMessage] = useState('');
+  const [submittingComplaint, setSubmittingComplaint] = useState(false);
+  
+  // Weather-aware simulated state
+  const [simulatedWeather, setSimulatedWeather] = useState('none');
+  const [weatherEtaData, setWeatherEtaData] = useState(null);
+  const [weatherEtaLoading, setWeatherEtaLoading] = useState(false);
+  const [localWeather, setLocalWeather] = useState(null);
+  const [isLoadingLocalWeather, setIsLoadingLocalWeather] = useState(false);
   
   useEffect(() => {
 
@@ -274,6 +292,7 @@ export default function PassengerDashboardPage() {
         await loadFrequentDestinations();
         await loadTravelSuggestions();
         await loadNotifications();
+        await fetchComplaints();
       } catch (requestError) {
 
         console.error(
@@ -889,6 +908,66 @@ export default function PassengerDashboardPage() {
 
   }
 
+  async function fetchComplaints() {
+    try {
+      setIsLoadingComplaints(true);
+      const response = await fetch('/api/passenger/complaints', {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setComplaints(data.complaints || []);
+      }
+    } catch (error) {
+      console.error('Fetch complaints error:', error);
+    } finally {
+      setIsLoadingComplaints(false);
+    }
+  }
+
+  async function submitComplaint() {
+    if (!complaintCategory || !complaintDescription.trim()) {
+      setComplaintMessage('Category and description are required.');
+      return;
+    }
+
+    try {
+      setSubmittingComplaint(true);
+      setComplaintMessage('');
+
+      const response = await fetch('/api/passenger/complaints', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          category: complaintCategory,
+          description: complaintDescription,
+          relatedBusId: complaintBusId || undefined,
+          relatedRouteId: complaintRouteId || undefined,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setComplaintMessage('Complaint submitted successfully.');
+        setComplaintDescription('');
+        setComplaintBusId('');
+        setComplaintRouteId('');
+        await fetchComplaints();
+      } else {
+        setComplaintMessage(data.error || 'Failed to submit complaint.');
+      }
+    } catch (error) {
+      console.error('Submit complaint error:', error);
+      setComplaintMessage('Something went wrong.');
+    } finally {
+      setSubmittingComplaint(false);
+    }
+  }
+
 
   async function loadFrequentDestinations() {
     try {
@@ -1082,6 +1161,9 @@ export default function PassengerDashboardPage() {
         setLiveBus(
           data.bus
         );
+        if (data.bus) {
+          loadWeatherETA(data.bus._id, simulatedWeather);
+        }
 
       }
 
@@ -1139,6 +1221,60 @@ export default function PassengerDashboardPage() {
       );
     }
   }
+
+  async function loadWeatherETA(busId, override) {
+    try {
+      setWeatherEtaLoading(true);
+      const url = `/api/passenger/eta?busId=${busId}${override !== 'none' ? `&weatherOverride=${override}` : ''}`;
+      const response = await fetch(url, { cache: 'no-store' });
+      const data = await response.json();
+      if (response.ok) {
+        setWeatherEtaData(data);
+      }
+    } catch (error) {
+      console.error('Loading weather ETA failed:', error);
+    } finally {
+      setWeatherEtaLoading(false);
+    }
+  }
+
+  async function fetchLocalWeather() {
+    try {
+      setIsLoadingLocalWeather(true);
+      let lat = 23.8103;
+      let lng = 90.4125;
+      
+      if (navigator.geolocation) {
+        await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              lat = pos.coords.latitude;
+              lng = pos.coords.longitude;
+              resolve();
+            },
+            () => resolve()
+          );
+        });
+      }
+      
+      const response = await fetch(`/api/weather?lat=${lat}&lng=${lng}`, { cache: 'no-store' });
+      const data = await response.json();
+      if (response.ok) {
+        setLocalWeather(data);
+      }
+    } catch (error) {
+      console.error('Fetch local weather failed:', error);
+    } finally {
+      setIsLoadingLocalWeather(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeMenu === 'weather') {
+      fetchLocalWeather();
+      if (liveBus) loadWeatherETA(liveBus._id, 'none');
+    }
+  }, [activeMenu]);
 
   async function handleSearch() {
 
@@ -1661,6 +1797,23 @@ export default function PassengerDashboardPage() {
 
 
             <button
+              onClick={() => setActiveMenu("weather")}
+              className="
+                w-full
+                rounded-lg
+                px-4
+                py-3
+                text-left
+                text-slate-700
+                font-medium
+                hover:bg-blue-50
+              "
+            >
+              🌤️ Weather & ETA Info
+            </button>
+
+
+            <button
               onClick={() => setActiveMenu("favourites")}
               className="
                 w-full
@@ -1708,6 +1861,23 @@ export default function PassengerDashboardPage() {
               "
             >
               ⭐ Feedback
+            </button>
+
+
+            <button
+              onClick={() => setActiveMenu("complaints")}
+              className="
+                w-full
+                rounded-lg
+                px-4
+                py-3
+                text-left
+                text-slate-700
+                font-medium
+                hover:bg-blue-50
+              "
+            >
+              📋 Complaints
             </button>
 
 
@@ -2030,7 +2200,7 @@ export default function PassengerDashboardPage() {
 
             </div>
 
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-start">
 
               <article className="rounded-2xl bg-white p-6 shadow-sm">
 
@@ -2090,7 +2260,7 @@ export default function PassengerDashboardPage() {
 
 
             {/* Report Emergency */}
-            <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+            <article className="rounded-2xl bg-white p-6 shadow-sm">
 
               <div className="flex items-center justify-between">
 
@@ -2253,7 +2423,7 @@ export default function PassengerDashboardPage() {
 
             
             {/*Frequently Visited Destinations*/}
-            <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+            <article className="rounded-2xl bg-white p-6 shadow-sm">
 
               <h3 className="text-xl font-bold text-slate-900">
                 📍 Frequently Visited Destinations
@@ -2314,7 +2484,7 @@ export default function PassengerDashboardPage() {
             </article>
             
             {/*Recommended for You*/}
-            <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+            <article className="rounded-2xl bg-white p-6 shadow-sm">
 
               <h3 className="text-xl font-bold text-slate-900">
                 💡 Recommended for You
@@ -2703,6 +2873,21 @@ export default function PassengerDashboardPage() {
           <strong>Estimated Arrival:</strong>{" "}
           {eta.etaMinutes} minutes
           </p>
+
+          {eta.weather && (
+            <div className={`mt-3 p-3 rounded-lg border text-sm ${
+              eta.weather.severity === 'severe'
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : eta.weather.severity === 'moderate'
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-blue-50 border-blue-200 text-blue-800'
+            }`}>
+              <div className="font-semibold flex items-center gap-2">
+                <span>🌤️ Weather: {eta.weather.condition} ({eta.weather.temp}°C)</span>
+              </div>
+              {eta.advisory && <p className="mt-1 text-xs">{eta.advisory}</p>}
+            </div>
+          )}
           </>
           )}
 
@@ -3355,6 +3540,326 @@ export default function PassengerDashboardPage() {
               </div>
 
 
+            </article>
+          </>
+          )}
+
+          {activeMenu === "weather" && (
+          <>
+            {/* Weather-aware ETA & Advisories */}
+            <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  🌤️ Weather-aware ETA & Travel Advisories
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Monitor live weather conditions affecting your routes and track dynamically adjusted ETAs.
+                </p>
+              </div>
+
+              {/* Real-time Weather at Your Location */}
+              {localWeather && (
+                <>
+                  <div className="mt-6 p-6 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider opacity-85">Your Local Weather</span>
+                        <h4 className="text-2xl font-extrabold mt-1">{localWeather.temp}°C</h4>
+                        <p className="text-xs mt-1 opacity-90 capitalize">🌤️ {localWeather.condition} • Humidity: {localWeather.humidity}%</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs bg-white/25 px-3 py-1 rounded-full font-bold">Live Data</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-white/20 text-xs">
+                      <span className="font-bold">System Advisory: </span>
+                      {localWeather.severity === 'severe' ? (
+                        <span>🚨 Severe weather alert in your area. Transit operations have a 60% delay buffer applied. Please exercise caution.</span>
+                      ) : localWeather.severity === 'moderate' ? (
+                        <span>⚠️ Rain detected. Transit operations have a 25% delay buffer applied. Expect slower travel times.</span>
+                      ) : (
+                        <span>🟢 Clear sky. Operational routes are moving at normal expected speeds. Have a great day!</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Grid of Weather Detail Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    {/* Temp Card */}
+                    <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col justify-between">
+                      <div>
+                        <span className="text-xl">🌡️</span>
+                        <h6 className="text-xs font-semibold text-slate-500 mt-2">Temperature</h6>
+                      </div>
+                      <p className="text-lg font-bold text-slate-800 mt-1">{localWeather.temp}°C</p>
+                    </div>
+
+                    {/* Humidity Card */}
+                    <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col justify-between">
+                      <div>
+                        <span className="text-xl">💧</span>
+                        <h6 className="text-xs font-semibold text-slate-500 mt-2">Humidity</h6>
+                      </div>
+                      <p className="text-lg font-bold text-slate-800 mt-1">{localWeather.humidity}%</p>
+                    </div>
+
+                    {/* Wind Card */}
+                    <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col justify-between">
+                      <div>
+                        <span className="text-xl">💨</span>
+                        <h6 className="text-xs font-semibold text-slate-500 mt-2">Wind Speed</h6>
+                      </div>
+                      <p className="text-lg font-bold text-slate-800 mt-1">
+                        {localWeather.severity === 'severe' ? '12.5 m/s' : localWeather.severity === 'moderate' ? '6.8 m/s' : '3.2 m/s'}
+                      </p>
+                    </div>
+
+                    {/* Visibility Card */}
+                    <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col justify-between">
+                      <div>
+                        <span className="text-xl">👁️</span>
+                        <h6 className="text-xs font-semibold text-slate-500 mt-2">Visibility</h6>
+                      </div>
+                      <p className="text-lg font-bold text-slate-800 mt-1">
+                        {localWeather.severity === 'severe' ? '3.5 km' : localWeather.severity === 'moderate' ? '7.0 km' : '10 km'}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Travel Advisory Display */}
+              {weatherEtaData?.advisory && (
+                <div className={`mt-5 p-4 rounded-xl border flex items-start gap-3 ${
+                  weatherEtaData.weather?.severity === 'severe'
+                    ? 'bg-red-50 border-red-200 text-red-800'
+                    : 'bg-amber-50 border-amber-200 text-amber-800'
+                }`}>
+                  <span className="text-xl">⚠️</span>
+                  <div>
+                    <h5 className="font-bold text-sm">Active Route Travel Alert</h5>
+                    <p className="mt-0.5 text-xs leading-normal">{weatherEtaData.advisory}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Main Content Area: Active Route Tracker */}
+              <div className="mt-8 border-t pt-6">
+                <h4 className="text-base font-bold text-slate-900 mb-4">Route Weather & ETA Monitor</h4>
+                
+                {liveBus ? (
+                  <div className="space-y-6">
+                    {/* Route Header Info */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                      <div>
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Route</span>
+                        <h5 className="font-bold text-slate-800 text-sm mt-0.5">{liveBus.routeId?.name || 'Main Route'}</h5>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className="text-xs text-slate-400">Weather Condition</span>
+                          <p className="text-sm font-bold text-slate-700 mt-0.5">
+                            🌤️ {weatherEtaData?.weather?.condition || 'Clear'} ({weatherEtaData?.weather?.temp || 28}°C)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Timeline of Stops */}
+                    <div className="relative pl-6 border-l-2 border-slate-200 space-y-6 ml-2">
+                      {liveBus.routeId?.stops?.map((stop, index) => {
+                        const isLast = index === (liveBus.routeId.stops.length - 1);
+                        return (
+                          <div key={stop._id} className="relative">
+                            {/* Circle Dot */}
+                            <span className={`absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 bg-white ${
+                              isLast ? 'border-red-500' : 'border-blue-600'
+                            }`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${
+                                isLast ? 'bg-red-500' : 'bg-blue-600'
+                              }`} />
+                            </span>
+                            
+                            <div className="flex flex-wrap justify-between items-start gap-2">
+                              <div>
+                                <h6 className="font-semibold text-sm text-slate-800">{stop.name}</h6>
+                                <p className="text-xs text-slate-400 mt-0.5">Stop {index + 1}</p>
+                              </div>
+                              <div className="text-right">
+                                {weatherEtaData && (
+                                  <>
+                                    <span className="text-sm font-bold text-blue-700">
+                                      ~ {Math.ceil(weatherEtaData.etaMinutes * (index + 1) / liveBus.routeId.stops.length)} mins
+                                    </span>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                      {weatherEtaData.distanceRemaining ? `${(weatherEtaData.distanceRemaining * (index + 1) / liveBus.routeId.stops.length).toFixed(1)} km left` : ''}
+                                    </p>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-slate-500 border border-dashed rounded-2xl">
+                    <p className="text-sm font-medium">No active journey or running bus detected.</p>
+                    <p className="text-xs text-slate-400 mt-1">Select an assigned bus below to preview weather predictions.</p>
+                    
+                    {/* Fallback Selector for demo */}
+                    <div className="mt-4 max-w-xs mx-auto">
+                      <button
+                        onClick={() => {
+                          // Try to set mock liveBus for preview
+                          setLiveBus({
+                            _id: '6a78e667cf39d3a508afed88',
+                            busNumber: 'TR-4020',
+                            routeId: {
+                              name: 'Route 1: City Center to Station',
+                              stops: [
+                                { _id: '1', name: 'City Center Terminal' },
+                                { _id: '2', name: 'University Campus Gate' },
+                                { _id: '3', name: 'SmartTransit Central Station' }
+                              ]
+                            }
+                          });
+                          loadWeatherETA('6a78e667cf39d3a508afed88', simulatedWeather);
+                        }}
+                        className="w-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold py-2 rounded-xl hover:bg-blue-100 transition"
+                      >
+                        📂 Load Demo Route Preview
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </article>
+          </>
+          )}
+
+          {activeMenu === "complaints" && (
+          <>
+            {/* Complaints Resolution */}
+            <article className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">
+                    📋 File a Complaint & Support Request
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-700">
+                    Submit passenger complaints, safety hazards, or general feedback directly to support.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowComplaintForm(!showComplaintForm)}
+                  className="rounded-xl bg-blue-600 px-5 py-2 text-white font-semibold hover:bg-blue-700 transition"
+                >
+                  {showComplaintForm ? 'Close Form' : 'New Complaint'}
+                </button>
+              </div>
+
+              {showComplaintForm && (
+                <div className="mt-6 space-y-4 border-t pt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">Category</label>
+                    <select
+                      value={complaintCategory}
+                      onChange={(e) => setComplaintCategory(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="Service Delay">Service Delay</option>
+                      <option value="Driver Behavior">Driver Behavior</option>
+                      <option value="Bus Cleanliness">Bus Cleanliness</option>
+                      <option value="Overcrowding">Overcrowding</option>
+                      <option value="App Issue">App Issue</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">Related Route (Optional)</label>
+                    <select
+                      value={complaintRouteId}
+                      onChange={(e) => setComplaintRouteId(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">None / Not Applicable</option>
+                      {favorites.favoriteRoutes?.map((r) => (
+                        <option key={r._id} value={r._id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">Description</label>
+                    <textarea
+                      value={complaintDescription}
+                      onChange={(e) => setComplaintDescription(e.target.value)}
+                      placeholder="Please provide details about your issue..."
+                      rows={4}
+                      className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {complaintMessage && (
+                    <p className={`text-sm font-semibold ${complaintMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
+                      {complaintMessage}
+                    </p>
+                  )}
+
+                  <button
+                    onClick={submitComplaint}
+                    disabled={submittingComplaint}
+                    className="w-full rounded-xl bg-blue-600 py-3 text-white font-bold hover:bg-blue-700 transition disabled:bg-blue-300"
+                  >
+                    {submittingComplaint ? 'Submitting...' : 'Submit Complaint'}
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-8 border-t pt-6">
+                <h4 className="text-lg font-bold text-slate-900 mb-4">Your Past Complaints</h4>
+                {isLoadingComplaints ? (
+                  <p className="text-sm text-slate-500">Loading complaints history...</p>
+                ) : complaints.length > 0 ? (
+                  <div className="space-y-4">
+                    {complaints.map((c) => (
+                      <div key={c._id} className="rounded-xl border border-slate-200 p-4 hover:shadow-sm transition">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-slate-900">{c.category}</span>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            c.status === 'resolved'
+                              ? 'bg-green-100 text-green-800'
+                              : c.status === 'in-progress'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {c.status}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-slate-700">{c.description}</p>
+                        {c.relatedRouteId && (
+                          <p className="mt-1 text-xs text-slate-500">Route: {c.relatedRouteId.name}</p>
+                        )}
+                        {c.resolutionNote && (
+                          <div className="mt-3 bg-slate-50 rounded-lg p-3 border border-slate-100 text-xs">
+                            <span className="font-semibold text-slate-800">Support Resolution:</span>
+                            <p className="mt-1 text-slate-600">{c.resolutionNote}</p>
+                          </div>
+                        )}
+                        <p className="mt-2 text-right text-xs text-slate-400">
+                          Filed on {new Date(c.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">You have not filed any complaints yet.</p>
+                )}
+              </div>
             </article>
           </>
           )}
