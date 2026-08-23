@@ -1,5 +1,5 @@
 'use client';
-
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -35,6 +35,12 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('Fleet Management');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [emergencyReports, setEmergencyReports] = useState([]);
+  const [lostItems, setLostItems] = useState([]);
+  const [isLoadingLostItems, setIsLoadingLostItems] = useState(false);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
+  const [emergencyLoading, setEmergencyLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -224,6 +230,97 @@ export default function AdminDashboardPage() {
     }
   }
 
+  async function fetchLostItems() {
+
+    try {
+
+      setIsLoadingLostItems(true);
+
+
+      const response =
+        await fetch(
+          '/api/admin/lost-items',
+          {
+            credentials:'include',
+            cache:'no-store',
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(response.ok){
+
+        setLostItems(
+          data.reports || []
+        );
+
+      }
+
+
+    } catch(error){
+
+      console.error(
+        'Fetch lost items error:',
+        error
+      );
+
+
+    } finally {
+
+      setIsLoadingLostItems(false);
+
+    }
+
+  }
+
+  async function fetchFeedbacks() {
+
+    try {
+
+      setIsLoadingFeedbacks(true);
+
+
+      const response =
+        await fetch(
+          '/api/admin/feedback',
+          {
+            credentials:'include',
+            cache:'no-store',
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(response.ok){
+
+        setFeedbacks(
+          data.feedbacks || []
+        );
+
+      }
+
+
+    } catch(error){
+
+      console.error(
+        'Fetch feedback error:',
+        error
+      );
+
+    } finally {
+
+      setIsLoadingFeedbacks(false);
+
+    }
+
+  }
+
   useEffect(() => {
     if (activeTab === 'Analytics') {
       fetchAnalyticsData();
@@ -261,6 +358,36 @@ export default function AdminDashboardPage() {
       fetchTrips();
     }
   }, [activeTab, fleetSubView]);
+
+  useEffect(()=>{
+
+  if(activeTab === 'Emergency Reports'){
+      loadEmergencyReports();
+  }
+
+  },[activeTab]);  
+
+  useEffect(() => {
+
+    if(activeTab === 'Lost & Found'){
+
+      fetchLostItems();
+
+    }
+
+  }, [activeTab]);
+
+  useEffect(() => {
+
+    if(activeTab === 'Feedback & Ratings'){
+
+      fetchFeedbacks();
+
+    }
+
+  }, [activeTab]);
+
+
   useEffect(() => {
     if (activeTab === 'Notifications' && notificationType === 'trip_cancellation') {
 
@@ -285,6 +412,7 @@ export default function AdminDashboardPage() {
     }
 
   }, [activeTab, notificationType]);
+
   useEffect(() => {
     fetchAllData();
     loadNotifications(true);
@@ -425,6 +553,37 @@ export default function AdminDashboardPage() {
       setIsLoggingOut(false);
     }
   }
+
+  async function updateEmergencyStatus(
+    reportId,
+    status
+  ){
+
+    const response =
+      await fetch(
+        '/api/admin/emergency-reports',
+        {
+          method:'PATCH',
+          headers:{
+            'Content-Type':'application/json'
+          },
+          credentials:'include',
+          body:JSON.stringify({
+            reportId,
+            status
+          })
+        }
+      );
+
+
+    if(response.ok){
+
+      loadEmergencyReports();
+
+    }
+
+  }
+
   async function loadNotifications(showLoading = false) {
     try {
       if (showLoading) {
@@ -467,7 +626,64 @@ export default function AdminDashboardPage() {
       }
     }
   }
+  useEffect(() => {
 
+    loadNotifications();
+
+    const interval = setInterval(() => {
+        loadNotifications();
+    }, 10000);
+
+
+    return () => {
+        clearInterval(interval);
+    };
+
+  }, []);
+  async function loadEmergencyReports(){
+
+    try{
+
+      setEmergencyLoading(true);
+
+      const response =
+        await fetch(
+          '/api/admin/emergency-reports',
+          {
+            credentials:'include',
+            cache:'no-store'
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(response.ok && data.success){
+
+        setEmergencyReports(
+          data.reports || []
+        );
+
+      }
+
+
+    }catch(error){
+
+      console.error(
+        'Emergency report loading error:',
+        error
+      );
+
+    }
+    finally{
+
+      setEmergencyLoading(false);
+
+    }
+
+  }
 
   async function markNotificationAsRead(
     notificationId
@@ -822,6 +1038,18 @@ export default function AdminDashboardPage() {
               { 
                 name: 'Notifications', 
                 icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'
+              },
+              {
+                name: 'Emergency Reports',
+                icon: 'M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'
+              },
+              {
+                name: 'Lost & Found',
+                icon: '🧳'
+              },
+              {
+                name: 'Feedback & Ratings',
+                icon: '⭐'
               }
             ].map((tab) => {
               const isActive = activeTab === tab.name;
@@ -1442,7 +1670,7 @@ export default function AdminDashboardPage() {
                     {fleetSubView === 'trips' && (
                       <>
                         <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-lg font-bold text-slate-900">Today's Active Trips</h3>
+                          <h3 className="text-lg font-bold text-slate-900">{"Today's Active Trips"}</h3>
                         </div>
 
                         <div className="overflow-x-auto">
@@ -2297,6 +2525,539 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
+          {/* VIEW: EMERGENCY REPORTS */}
+
+          {activeTab === 'Emergency Reports' && (
+
+          <div className="max-w-7xl mx-auto space-y-8">
+
+          <h2 className="text-3xl font-extrabold text-slate-900">
+          Emergency Reports
+          </h2>
+
+
+          <div className="bg-white rounded-2xl border p-6">
+
+          <table className="w-full text-sm">
+
+          <thead>
+          <tr className="border-b text-slate-400 uppercase text-xs">
+          <th>Passenger</th>
+          <th>Bus</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Location</th>
+          <th>Status</th>
+          <th>Action</th>
+          </tr>
+          </thead>
+
+
+          <tbody>
+
+          {emergencyReports.map(report=>(
+
+          <tr key={report._id}
+          className="border-b">
+
+          <td>
+          {report.passengerId?.name}
+          </td>
+
+
+          <td>
+          {report.busId?.busNumber || 'N/A'}
+          </td>
+
+
+          <td>
+          {report.category}
+          </td>
+
+
+          <td>
+          {report.description}
+          </td>
+
+
+          <td>
+          {report.location?.coordinates?.join(', ')}
+          </td>
+
+
+          <td>
+          <span>
+          {report.status}
+          </span>
+          </td>
+
+
+          <td>
+
+          <select
+          value={report.status}
+          onChange={
+          (e)=>
+          updateEmergencyStatus(
+          report._id,
+          e.target.value
+          )
+          }
+          >
+
+          <option value="pending">
+          Pending
+          </option>
+
+          <option value="investigating">
+          Investigating
+          </option>
+
+          <option value="resolved">
+          Resolved
+          </option>
+
+          </select>
+
+          </td>
+
+
+          </tr>
+
+          ))}
+
+          </tbody>
+
+
+          </table>
+
+          </div>
+
+          </div>
+
+          )}
+
+          {/* VIEW: LOST & FOUND */}
+
+          {activeTab === 'Lost & Found' && (
+
+            <div className="space-y-6">
+
+              <h1 className="text-3xl font-extrabold text-slate-900">
+                Lost & Found Management
+              </h1>
+
+
+              <div className="
+                overflow-x-auto
+                rounded-2xl
+                border
+                border-slate-200
+                bg-white
+                shadow-sm
+              ">
+
+                <table className="w-full text-sm">
+
+
+                  <thead className="bg-slate-50">
+
+                    <tr>
+
+                      <th className="px-5 py-4 text-left">
+                        Passenger
+                      </th>
+
+                      <th className="px-5 py-4 text-left">
+                        Email
+                      </th>
+
+                      <th className="px-5 py-4 text-left">
+                        Lost Item
+                      </th>
+
+                      <th className="px-5 py-4 text-left">
+                        Status
+                      </th>
+
+                      <th className="px-5 py-4 text-left">
+                        Action
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+
+                  <tbody>
+
+
+                  {isLoadingLostItems ? (
+
+                    <tr>
+
+                      <td
+                        colSpan="5"
+                        className="p-6 text-center"
+                      >
+
+                        Loading lost items...
+
+                      </td>
+
+                    </tr>
+
+
+                  ) : lostItems.length === 0 ? (
+
+                    <tr>
+
+                      <td
+                        colSpan="5"
+                        className="p-6 text-center"
+                      >
+
+                        No lost item reports found.
+
+                      </td>
+
+                    </tr>
+
+
+                  ) : (
+
+                    lostItems.map((item)=>(
+
+                      <tr
+                        key={item._id}
+                        className="border-t"
+                      >
+
+
+                        <td className="px-5 py-4">
+
+                          {item.passengerId?.name ||
+                          'Unknown'}
+
+                        </td>
+
+
+                        <td className="px-5 py-4">
+
+                          {item.passengerId?.email ||
+                          '-'}
+
+                        </td>
+
+
+                        <td className="px-5 py-4">
+
+                          {item.description}
+
+                        </td>
+
+
+                        <td className="px-5 py-4">
+
+                          <span className="
+                            rounded-full
+                            bg-yellow-100
+                            px-3
+                            py-1
+                            text-xs
+                            font-semibold
+                          ">
+
+                            {item.status}
+
+                          </span>
+
+                        </td>
+
+
+                        <td className="px-5 py-4">
+
+
+                          <select
+
+                            value={item.status}
+
+                            onChange={async(e)=>{
+
+
+                              await fetch(
+                                '/api/admin/lost-items',
+                                {
+
+                                  method:'PATCH',
+
+                                  headers:{
+                                    'Content-Type':
+                                    'application/json',
+                                  },
+
+                                  body:
+                                  JSON.stringify({
+
+                                    itemId:
+                                    item._id,
+
+                                    status:
+                                    e.target.value,
+
+                                  }),
+
+                                }
+                              );
+
+
+                              fetchLostItems();
+
+
+                            }}
+
+                            className="
+                              rounded-lg
+                              border
+                              px-3
+                              py-2
+                            "
+
+                          >
+
+                            <option value="reported">
+                              Reported
+                            </option>
+
+                            <option value="found">
+                              Found
+                            </option>
+
+                            <option value="claimed">
+                              Claimed
+                            </option>
+
+
+                          </select>
+
+
+                        </td>
+
+
+                      </tr>
+
+                    ))
+
+                  )}
+
+
+                  </tbody>
+
+
+                </table>
+
+
+              </div>
+
+
+            </div>
+
+          )}
+
+          {/* VIEW: FEEDBACK & RATINGS */}
+
+          {activeTab === 'Feedback & Ratings' && (
+
+            <div className="space-y-6">
+
+              <div>
+
+                <h1 className="text-3xl font-extrabold text-slate-900">
+                  ⭐ Feedback & Ratings
+                </h1>
+
+                <p className="mt-2 text-sm text-slate-600">
+                  Review passenger feedback and monitor service quality.
+                </p>
+
+              </div>
+
+
+              <div
+                className="
+                  overflow-x-auto
+                  rounded-2xl
+                  border
+                  border-slate-200
+                  bg-white
+                  shadow-sm
+                "
+              >
+
+                <table className="w-full text-sm">
+
+
+                  <thead className="bg-slate-50">
+
+                    <tr>
+
+                      <th className="px-5 py-4 text-left">
+                        Passenger
+                      </th>
+
+
+                      <th className="px-5 py-4 text-left">
+                        Bus
+                      </th>
+
+
+                      <th className="px-5 py-4 text-left">
+                        Route
+                      </th>
+
+
+                      <th className="px-5 py-4 text-left">
+                        Rating
+                      </th>
+
+
+                      <th className="px-5 py-4 text-left">
+                        Comment
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+
+
+                  <tbody>
+
+
+                  {isLoadingFeedbacks ? (
+
+                    <tr>
+
+                      <td
+                        colSpan="5"
+                        className="p-6 text-center"
+                      >
+
+                        Loading feedback...
+
+                      </td>
+
+                    </tr>
+
+
+                  ) : feedbacks.length === 0 ? (
+
+                    <tr>
+
+                      <td
+                        colSpan="5"
+                        className="p-6 text-center"
+                      >
+
+                        No feedback available.
+
+                      </td>
+
+                    </tr>
+
+
+                  ) : (
+
+
+                    feedbacks.map((feedback)=>(
+
+
+                      <tr
+                        key={feedback._id}
+                        className="border-t"
+                      >
+
+
+                        <td className="px-5 py-4">
+
+                          <p className="font-semibold text-slate-900">
+
+                            {feedback.userId?.name ||
+                            'Unknown'}
+
+                          </p>
+
+                          <p className="text-xs text-slate-500">
+
+                            {feedback.userId?.email}
+
+                          </p>
+
+                        </td>
+
+
+
+                        <td className="px-5 py-4">
+
+                          {feedback.tripId?.busId?.busNumber ||
+                          '-'}
+
+                        </td>
+
+
+
+                        <td className="px-5 py-4">
+
+                          {feedback.tripId?.routeId?.name ||
+                          '-'}
+
+                        </td>
+
+
+
+                        <td className="px-5 py-4">
+
+                          <span className="text-xl">
+
+                            {'⭐'.repeat(
+                              feedback.rating
+                            )}
+
+                          </span>
+
+                        </td>
+
+
+
+                        <td className="px-5 py-4">
+
+                          {feedback.comment ||
+                          'No comment'}
+
+                        </td>
+
+
+                      </tr>
+
+
+                    ))
+
+
+                  )}
+
+
+                  </tbody>
+
+
+                </table>
+
+
+              </div>
+
+
+            </div>
+
+          )}
 
           {/* VIEW: NOTIFICATION CENTER */}
           {activeTab === 'Notifications' && (

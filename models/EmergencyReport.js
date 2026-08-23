@@ -37,9 +37,21 @@ const EmergencyReportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    currentLocation:{
+      latitude:{
+          type:Number
+      },
+      longitude:{
+          type:Number
+      }
+    },
     status: {
       type: String,
-      enum: ['pending', 'resolved', 'active'],
+      enum: [
+        'pending', 
+        'resolved', 
+        'investigating'
+      ],
       default: 'pending',
     },
   },
