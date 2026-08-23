@@ -32,7 +32,7 @@ ChartJS.register(
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('Fleet Management');
+  const [activeTab, setActiveTab] = useState('Dashboard');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [emergencyReports, setEmergencyReports] = useState([]);
@@ -202,6 +202,16 @@ export default function AdminDashboardPage() {
         const driversData = await driversRes.json();
         setDrivers(driversData);
       }
+
+      // Fetch Emergency Reports
+      const emergencyRes = await fetch('/api/admin/emergency-reports');
+      if (emergencyRes.ok) {
+        const emergencyData = await emergencyRes.json();
+        setEmergencyReports(emergencyData.reports || []);
+      }
+
+      // Fetch Complaints for Dashboard snapshot
+      await fetchComplaints();
 
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -1124,7 +1134,6 @@ export default function AdminDashboardPage() {
               { name: 'Requests', icon: 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0L12 18l-8-5' },
               { name: 'Fleet Management', icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 11a4 4 0 01-8 0V7a4 4 0 018 0v4z' },
               { name: 'Route Planner', icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3' },
-              { name: 'Live Tracking', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z' },
               { name: 'Schedules', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
               { name: 'Analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
               { 
@@ -1410,6 +1419,236 @@ export default function AdminDashboardPage() {
         {/* SCREEN VIEWS */}
         <div className="flex-1 overflow-y-auto p-8">
           
+          {/* VIEW: DASHBOARD */}
+          {activeTab === 'Dashboard' && (
+            <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
+              <div>
+                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard Overview</h2>
+                <p className="text-slate-500 text-sm mt-1">Real-time status overview of the SmartTransit fleet, analytics, and complaints.</p>
+              </div>
+
+              {/* Stats Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {[
+                  { title: 'Trips Completed', value: stats?.completedTrips || 0, desc: 'Completed transit trips', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-blue-600 bg-blue-50' },
+                  { title: 'Pending Drivers', value: stats?.pendingDrivers || 0, desc: 'Awaiting credential review', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', color: 'text-orange-600 bg-orange-50' },
+                  { title: 'Pending Complaints', value: stats?.openComplaints || 0, desc: 'Awaiting support review', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6-4h6', color: 'text-amber-600 bg-amber-50' },
+                  { title: 'Average Delay Time', value: `${stats?.averageDelayMinutes || 0}m`, desc: 'Average traffic delay logs', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-rose-600 bg-rose-50' }
+                ].map((card, idx) => (
+                  <div key={idx} className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{card.title}</p>
+                      <h3 className="text-3xl font-extrabold text-slate-900">{card.value}</h3>
+                      <p className="text-[11px] text-slate-400 font-semibold">{card.desc}</p>
+                    </div>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${card.color}`}>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
+                      </svg>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Charts Panel */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Trip Performance Chart */}
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Trip Completion Rates</h3>
+                    <p className="text-xs text-slate-400">Comparing scheduled trips vs successfully completed ones this week</p>
+                  </div>
+                  <div className="h-64 relative">
+                    <Line
+                      data={{
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [
+                          {
+                            label: 'Scheduled Trips',
+                            data: [80, 85, 82, 90, 95, 60, 58],
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5
+                          },
+                          {
+                            label: 'Completed Trips',
+                            data: [78, 83, 81, 89, 93, 59, 58],
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5
+                          }
+                        ]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { weight: 'bold' } } } },
+                        scales: {
+                          y: { beginAtZero: true, ticks: { font: { weight: 'bold' }, color: '#94a3b8' } },
+                          x: { ticks: { font: { weight: 'bold' }, color: '#94a3b8' } }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Live Emergency & Incident Alerts Feed */}
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Live Safety & Incident Feed</h3>
+                      <p className="text-xs text-slate-400">Real-time emergency distress signals and safety logs from active buses</p>
+                    </div>
+                    <span className="bg-red-50 text-red-700 font-bold px-3 py-1 rounded-full text-xs">
+                      {emergencyReports.filter(r => r.status === 'pending').length} Active
+                    </span>
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto space-y-3 pr-1">
+                    {emergencyReports.length === 0 ? (
+                      <div className="text-center py-12 text-xs text-slate-400 font-semibold">
+                        No active emergencies reported.
+                      </div>
+                    ) : (
+                      emergencyReports.slice(0, 5).map((report) => (
+                        <div key={report._id} className="p-3.5 rounded-xl border border-red-100 bg-red-50/10 flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                              report.status === 'resolved' 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-red-100 text-red-700 animate-pulse'
+                            }`}>
+                              {report.status}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              {new Date(report.createdAt).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-slate-800">
+                            Bus {report.busId?.busNumber || 'N/A'}: {report.description}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            Filed by: {report.passengerId?.name || 'Passenger'} ({report.passengerId?.email || 'N/A'})
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions Panel */}
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-900 mb-4">Quick Operations Hub</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <button
+                    onClick={() => setShowAddBusModal(true)}
+                    className="p-4 rounded-xl border border-blue-150 bg-blue-50/20 text-left hover:bg-blue-50 transition group"
+                  >
+                    <span className="text-2xl mb-2 block">🚌</span>
+                    <h4 className="font-bold text-slate-800 text-sm group-hover:text-blue-600">Add New Bus</h4>
+                    <p className="text-xs text-slate-500 mt-1">Register vehicle in database</p>
+                  </button>
+                  <button
+                    onClick={() => setShowAddRouteModal(true)}
+                    className="p-4 rounded-xl border border-orange-150 bg-orange-50/20 text-left hover:bg-orange-50 transition group"
+                  >
+                    <span className="text-2xl mb-2 block">🗺️</span>
+                    <h4 className="font-bold text-slate-800 text-sm group-hover:text-orange-600">Create Route</h4>
+                    <p className="text-xs text-slate-500 mt-1">Design stops & checkpoints</p>
+                  </button>
+                  <button
+                    onClick={() => setShowAddStopModal(true)}
+                    className="p-4 rounded-xl border border-purple-150 bg-purple-50/20 text-left hover:bg-purple-50 transition group"
+                  >
+                    <span className="text-2xl mb-2 block">📍</span>
+                    <h4 className="font-bold text-slate-800 text-sm group-hover:text-purple-600">Add Bus Stop</h4>
+                    <p className="text-xs text-slate-500 mt-1">Create GPS location stop</p>
+                  </button>
+                  <button
+                    onClick={() => setShowAddScheduleModal(true)}
+                    className="p-4 rounded-xl border border-emerald-150 bg-emerald-50/20 text-left hover:bg-emerald-50 transition group"
+                  >
+                    <span className="text-2xl mb-2 block">📅</span>
+                    <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-600">Setup Schedule</h4>
+                    <p className="text-xs text-slate-500 mt-1">Assign departures to fleet</p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Centralized Support & Passenger Complaints Table */}
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Recent Passenger Complaints</h3>
+                    <p className="text-xs text-slate-400">Latest support tickets and transit issues reported by passengers</p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('Complaints Management')}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                  >
+                    <span>View All Complaints</span>
+                    <span>→</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[9px] pb-2">
+                        <th className="pb-3">Category</th>
+                        <th className="pb-3">Submitting User</th>
+                        <th className="pb-3">Incident Summary</th>
+                        <th className="pb-3">Current Status</th>
+                        <th className="pb-3 text-right">Filed Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-655 font-medium">
+                      {complaints.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-slate-400 font-medium">
+                            No active passenger complaints registered.
+                          </td>
+                        </tr>
+                      ) : (
+                        complaints.slice(0, 4).map((c) => (
+                          <tr key={c._id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3.5 font-bold text-slate-800">{c.category}</td>
+                            <td className="py-3.5">
+                              <p className="font-bold text-slate-700">{c.userId?.name || 'Passenger'}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{c.userId?.email || 'N/A'}</p>
+                            </td>
+                            <td className="py-3.5 max-w-xs truncate text-slate-500">{c.description}</td>
+                            <td className="py-3.5">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase ${
+                                c.status === 'resolved'
+                                  ? 'bg-green-50 text-green-700 border border-green-150'
+                                  : c.status === 'in-progress'
+                                  ? 'bg-blue-50 text-blue-700 border border-blue-150'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-150'
+                              }`}>
+                                {c.status}
+                              </span>
+                            </td>
+                            <td className="py-3.5 text-right text-slate-400">
+                              {new Date(c.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+
           {/* VIEW: REQUESTS (DRIVER REGISTRATION) */}
           {activeTab === 'Requests' && (
             <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
@@ -3846,18 +4085,6 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* VIEW: DASHBOARD / OTHER */}
-          {activeTab === 'Dashboard' && (
-            <div className="max-w-7xl mx-auto text-center py-20 bg-white border border-slate-200/80 rounded-2xl p-8 space-y-4 animate-fadeIn">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 114 0v2m-4 0h4m-4 0H5m12 0h2" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-extrabold text-slate-800">Quick Dashboard Hub</h2>
-              <p className="text-slate-500 max-w-md mx-auto text-sm">Welcome to SmartTransit administrative panel. Switch to <button onClick={() => setActiveTab('Requests')} className="text-blue-600 hover:underline font-bold">Requests</button> to manage driver registrations or <button onClick={() => setActiveTab('Fleet Management')} className="text-blue-600 hover:underline font-bold">Fleet Management</button> to adjust routes.</p>
-            </div>
-          )}
 
         </div>
       </div>
