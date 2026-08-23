@@ -41,6 +41,11 @@ export default function AdminDashboardPage() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
   const [emergencyLoading, setEmergencyLoading] = useState(false);
+  const [maintenanceReports, setMaintenanceReports] = useState([]);
+  const [isLoadingMaintenanceReports, setIsLoadingMaintenanceReports] = useState(false);
+  const [driverPerformance, setDriverPerformance] = useState([]);
+  const [driverPerformanceLoading, setDriverPerformanceLoading] = useState(false);
+  const [technicianInputs, setTechnicianInputs] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -67,7 +72,6 @@ export default function AdminDashboardPage() {
   const [completedTrips, setCompletedTrips] = useState([]);
   const [completedTripsGroup, setCompletedTripsGroup] = useState('route'); // 'route' | 'bus' | 'driver'
   const [busUtilization, setBusUtilization] = useState([]);
-  const [driverPerformance, setDriverPerformance] = useState([]);
   const [peakHours, setPeakHours] = useState([]);
   
   // Search query states
@@ -367,6 +371,26 @@ export default function AdminDashboardPage() {
 
   },[activeTab]);  
 
+  useEffect(()=>{
+
+    if(activeTab === 'Maintenance Reports'){
+      loadMaintenanceReports();
+    }
+
+  },[activeTab]);
+
+  useEffect(()=>{
+
+    if(
+      activeTab === 'Driver Performance'
+    ){
+
+      loadDriverPerformance();
+
+    }
+
+  },[activeTab]);
+
   useEffect(() => {
 
     if(activeTab === 'Lost & Found'){
@@ -386,7 +410,17 @@ export default function AdminDashboardPage() {
     }
 
   }, [activeTab]);
+  useEffect(() => {
 
+    if (
+      activeTab === 'Maintenance Reports'
+    ) {
+
+      setMaintenanceReports();
+
+    }
+
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab === 'Notifications' && notificationType === 'trip_cancellation') {
@@ -680,6 +714,98 @@ export default function AdminDashboardPage() {
     finally{
 
       setEmergencyLoading(false);
+
+    }
+
+  }
+
+  async function loadMaintenanceReports(){
+
+    try{
+
+      setIsLoadingMaintenanceReports(true);
+
+      const response =
+        await fetch(
+          '/api/admin/maintenance-reports',
+          {
+            credentials:'include',
+            cache:'no-store'
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(response.ok && data.success){
+
+        setMaintenanceReports(
+          data.reports || []
+        );
+
+      }
+
+
+    }catch(error){
+
+      console.error(
+        'Maintenance report loading error:',
+        error
+      );
+
+    }
+    finally{
+
+      setIsLoadingMaintenanceReports(false);
+
+    }
+
+  }
+
+  async function loadDriverPerformance(){
+
+    try{
+
+      setDriverPerformanceLoading(true);
+
+
+      const response =
+        await fetch(
+          '/api/admin/driver-performance',
+          {
+            credentials:'include',
+            cache:'no-store',
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(response.ok){
+
+        setDriverPerformance(
+          data.performance || []
+        );
+
+      }
+
+
+    }
+    catch(error){
+
+      console.error(
+        'Driver performance loading error:',
+        error
+      );
+
+    }
+    finally{
+
+      setDriverPerformanceLoading(false);
 
     }
 
@@ -1045,11 +1171,19 @@ export default function AdminDashboardPage() {
               },
               {
                 name: 'Lost & Found',
-                icon: '🧳'
+                icon: 'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M6 6h12M6 18h12M10 2v4m4-4v4'
+              },
+              {
+                name: 'Maintenance Reports',
+                icon:'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'
+              },
+              {
+                name:'Driver Performance',
+                icon: 'M12 2a10 10 0 0 0-7.32 16.82l1.42-1.42A8 8 0 1 1 17.9 15.4l1.42 1.42A10 10 0 0 0 12 2zm1.41 8.59a2 2 0 1 0-2.83 2.83l3.54 3.54a1 1 0 0 0 1.41-1.41l-3.54-3.54z'
               },
               {
                 name: 'Feedback & Ratings',
-                icon: '⭐'
+                icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'
               }
             ].map((tab) => {
               const isActive = activeTab === tab.name;
@@ -1682,6 +1816,7 @@ export default function AdminDashboardPage() {
                                 <th className="pb-3">Driver</th>
                                 <th className="pb-3">Start Time</th>
                                 <th className="pb-3">Status</th>
+
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
@@ -2637,6 +2772,375 @@ export default function AdminDashboardPage() {
 
           )}
 
+          {/* VIEW: MAINTENANCE REPORTS */}
+
+          {activeTab === 'Maintenance Reports' && (
+
+            <div className="space-y-6">
+
+
+              <div>
+
+                <h2 className="text-3xl font-extrabold text-slate-900">
+                  Maintenance Reports
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-600">
+                  Review vehicle breakdowns, maintenance issues,
+                  and operational incidents.
+                </p>
+
+              </div>
+
+
+
+              <div className="rounded-2xl bg-white p-6 shadow-sm">
+
+
+                {isLoadingMaintenanceReports ? (
+
+                  <p className="text-center text-slate-500">
+                    Loading maintenance reports...
+                  </p>
+
+
+                ) : maintenanceReports.length === 0 ? (
+
+                  <p className="text-center text-slate-500">
+                    No maintenance reports found.
+                  </p>
+
+
+                ) : (
+
+
+                  <div className="overflow-x-auto">
+
+
+                    <table className="w-full text-sm">
+
+
+                      <thead>
+
+                        <tr className="border-b text-left text-xs uppercase text-slate-400">
+
+
+                          <th className="px-4 py-3">
+                            Bus
+                          </th>
+
+
+                          <th className="px-4 py-3">
+                            Driver
+                          </th>
+
+
+                          <th className="px-4 py-3">
+                            Category
+                          </th>
+
+
+                          <th className="px-4 py-3">
+                            Severity
+                          </th>
+
+
+                          <th className="px-4 py-3">
+                            Status
+                          </th>
+                          <th className="px-4 py-3">
+                            Technician
+                          </th>
+
+                          <th className="px-4 py-3">
+                            History
+                          </th>
+
+                        </tr>
+
+                      </thead>
+
+
+
+                      <tbody>
+
+
+                        {maintenanceReports.map(
+                          (report) => (
+
+
+                            <tr
+                              key={report._id}
+                              className="border-b"
+                            >
+
+                              {/* BUS */}
+                              <td className="px-4 py-4">
+                                {
+                                  report.busId?.busNumber ||
+                                  'N/A'
+                                }
+                              </td>
+
+
+
+                              {/* DRIVER */}
+                              <td className="px-4 py-4">
+                                {
+                                  report.driverId?.name ||
+                                  'N/A'
+                                }
+                              </td>
+
+
+
+                              {/* CATEGORY */}
+                              <td className="px-4 py-4 capitalize">
+                                {
+                                  report.category
+                                }
+                              </td>
+
+
+
+                              {/* SEVERITY */}
+                              <td className="px-4 py-4 capitalize">
+                                {
+                                  report.severity
+                                }
+                              </td>
+
+
+
+                              {/* STATUS */}
+
+                              <td className="px-4 py-4">
+
+                                <select
+
+                                  value={
+                                    report.status
+                                  }
+
+
+                                  onChange={
+                                    async(e)=>{
+
+
+                                      await fetch(
+                                        '/api/admin/maintenance-reports',
+                                        {
+
+                                          method:'PATCH',
+
+                                          headers:{
+                                            'Content-Type':
+                                            'application/json',
+                                          },
+
+
+                                          credentials:'include',
+
+
+                                          body:
+                                            JSON.stringify({
+
+                                              reportId:
+                                                report._id,
+
+                                              status:
+                                                e.target.value,
+
+                                            }),
+
+                                        }
+                                      );
+
+
+                                      loadMaintenanceReports();
+
+
+                                    }
+                                  }
+
+
+                                  className="
+                                    rounded-lg
+                                    border
+                                    px-3
+                                    py-2
+                                  "
+
+                                >
+
+
+                                  <option value="pending">
+                                    Pending
+                                  </option>
+
+
+                                  <option value="under-repair">
+                                    Under Repair
+                                  </option>
+
+
+                                  <option value="resolved">
+                                    Resolved
+                                  </option>
+
+
+                                </select>
+
+
+                              </td>
+
+
+
+                              {/* TECHNICIAN */}
+                              <td className="px-4 py-4">
+
+                                <div className="flex gap-2">
+
+                                  <input
+                                    value={
+                                      technicianInputs[report._id] ||
+                                      report.technicianName ||
+                                      ''
+                                    }
+
+                                    onChange={(e)=>{
+
+                                      setTechnicianInputs({
+
+                                        ...technicianInputs,
+
+                                        [report._id]:
+                                          e.target.value
+
+                                      });
+
+                                    }}
+
+                                    placeholder="Technician name"
+
+                                    className="
+                                      rounded-lg
+                                      border
+                                      px-3
+                                      py-2
+                                      text-sm
+                                    "
+                                  />
+
+
+                                  <button
+
+                                    onClick={async()=>{
+
+                                      await fetch(
+                                        '/api/admin/maintenance-reports',
+                                        {
+
+                                          method:'PATCH',
+
+                                          headers:{
+                                            'Content-Type':
+                                            'application/json',
+                                          },
+
+                                          credentials:'include',
+
+                                          body:
+                                            JSON.stringify({
+
+                                              reportId:
+                                                report._id,
+
+                                              technicianName:
+                                                technicianInputs[report._id],
+
+                                            }),
+
+                                        }
+                                      );
+
+
+                                      loadMaintenanceReports();
+
+                                    }}
+
+                                    className="
+                                      rounded-lg
+                                      bg-blue-600
+                                      px-3
+                                      py-2
+                                      text-white
+                                      text-sm
+                                    "
+                                  >
+
+                                    Assign
+
+                                  </button>
+
+                                </div>
+
+                              </td>
+
+
+
+                              {/* HISTORY */}
+                              <td className="px-4 py-4">
+
+                                {
+                                  report.history?.map(
+                                    (item,index)=>(
+
+                                      <div
+                                        key={index}
+                                        className="text-xs text-slate-600"
+                                      >
+
+                                        {item.status}
+
+                                        <br />
+
+                                        {item.note}
+
+                                      </div>
+
+                                    )
+                                  )
+                                }
+
+                              </td>
+
+                            </tr>
+
+
+                          )
+                        )}
+
+
+                      </tbody>
+
+
+                    </table>
+
+
+                  </div>
+
+
+                )}
+
+
+              </div>
+
+
+            </div>
+
+          )}
+
           {/* VIEW: LOST & FOUND */}
 
           {activeTab === 'Lost & Found' && (
@@ -2863,6 +3367,8 @@ export default function AdminDashboardPage() {
             </div>
 
           )}
+
+
 
           {/* VIEW: FEEDBACK & RATINGS */}
 
