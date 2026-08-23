@@ -43,7 +43,7 @@ const PassengerJourneySchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['completed', 'cancelled'],
+      enum: ['active', 'completed', 'cancelled'],
       default: 'completed',
     },
   },

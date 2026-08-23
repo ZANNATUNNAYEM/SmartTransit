@@ -536,7 +536,7 @@ export default function DriverDashboardPage() {
 
     const intervalId = setInterval(() => {
       loadNotifications(false);
-    }, 30000);
+    }, 10000);
 
     return () => clearInterval(intervalId);
   }, [user]);
