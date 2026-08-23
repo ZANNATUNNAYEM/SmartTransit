@@ -1592,7 +1592,7 @@ export default function DriverDashboardPage() {
                   {assignedBus.routeId?.stops?.map((stop, index) => {
                     const isLast = index === (assignedBus.routeId.stops.length - 1);
                     return (
-                      <div key={stop._id} className="relative">
+                      <div key={stop._id || stop.id || index} className="relative">
                         <span className={`absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 bg-white ${
                           isLast ? 'border-red-500' : 'border-blue-600'
                         }`}>
