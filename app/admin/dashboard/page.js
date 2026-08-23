@@ -51,6 +51,9 @@ export default function AdminDashboardPage() {
   const [selectedComplaintId, setSelectedComplaintId] = useState('');
   const [complaintNote, setComplaintNote] = useState('');
   const [isSubmittingComplaintNote, setIsSubmittingComplaintNote] = useState(false);
+  const [complaintsCurrentPage, setComplaintsCurrentPage] = useState(1);
+  const [complaintsPerPage] = useState(5);
+  const [complaintFilter, setComplaintFilter] = useState('all');
   
   const [optimizationRecommendations, setOptimizationRecommendations] = useState(null);
   const [isLoadingOptimization, setIsLoadingOptimization] = useState(false);
@@ -1134,19 +1137,19 @@ export default function AdminDashboardPage() {
               },
               {
                 name: 'Lost & Found',
-                icon: '🧳'
+                icon: 'M20 7h-4V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM10 5h4v2h-4V5zM4 9h16v10H4V9z'
               },
               {
                 name: 'Feedback & Ratings',
-                icon: '⭐'
+                icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.246.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.18 0l-3.97 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.98 10.1c-.773-.565-.373-1.81.588-1.81h4.907a1 1 0 00.95-.69l1.519-4.674z'
               },
               {
                 name: 'Complaints Management',
-                icon: '📋'
+                icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6-4h6'
               },
               {
                 name: 'Route Optimization',
-                icon: '💡'
+                icon: 'M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
               }
             ].map((tab) => {
               const isActive = activeTab === tab.name;
@@ -1154,15 +1157,19 @@ export default function AdminDashboardPage() {
                 <button
                   key={tab.name}
                   onClick={() => setActiveTab(tab.name)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-150 ${
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm text-left transition-all duration-150 ${
                     isActive
                       ? 'bg-blue-50 text-blue-600 shadow-sm shadow-blue-500/5'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
-                  </svg>
+                  {tab.icon.startsWith('M') ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
+                    </svg>
+                  ) : (
+                    <span className="text-base w-5 h-5 flex items-center justify-center">{tab.icon}</span>
+                  )}
                   <span>{tab.name}</span>
                 </button>
               );
@@ -2974,103 +2981,181 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+                <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h2 className="font-bold text-slate-900 text-lg">Active Complaints</h2>
-                  <span className="bg-blue-50 text-blue-700 font-bold px-3 py-1 rounded-full text-xs">
-                    {complaints.length} Total
-                  </span>
+                  
+                  {/* Status Filter Tabs */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl space-x-1">
+                    {['all', 'pending', 'in-progress', 'resolved'].map((status) => {
+                      const count = status === 'all'
+                        ? complaints.length
+                        : complaints.filter(c => c.status === status).length;
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => {
+                            setComplaintFilter(status);
+                            setComplaintsCurrentPage(1);
+                          }}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold capitalize transition ${
+                            complaintFilter === status
+                              ? 'bg-white text-slate-950 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          {status} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {isLoadingComplaints ? (
                   <div className="p-8 text-center text-slate-500 font-medium">Loading complaints...</div>
                 ) : complaints.length > 0 ? (
-                  <div className="divide-y divide-slate-100">
-                    {complaints.map((c) => (
-                      <div key={c._id} className="p-6 hover:bg-slate-50/50 transition">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center space-x-3">
-                              <span className="font-bold text-slate-900 text-base">{c.category}</span>
-                              <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                c.status === 'resolved'
-                                  ? 'bg-green-50 text-green-700 border border-green-200'
-                                  : c.status === 'in-progress'
-                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
-                              }`}>
-                                {c.status}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-400 mt-1">
-                              Submitted by: <strong className="text-slate-600">{c.userId?.name || 'Passenger'}</strong> ({c.userId?.email || 'N/A'}) • Filed on {new Date(c.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
+                  (() => {
+                    const filteredComplaints = complaints.filter(c => {
+                      if (complaintFilter === 'all') return true;
+                      return c.status === complaintFilter;
+                    });
+                    const indexOfLastComplaint = complaintsCurrentPage * complaintsPerPage;
+                    const indexOfFirstComplaint = indexOfLastComplaint - complaintsPerPage;
+                    const currentComplaints = filteredComplaints.slice(indexOfFirstComplaint, indexOfLastComplaint);
+                    const totalComplaintPages = Math.ceil(filteredComplaints.length / complaintsPerPage);
 
-                        <p className="mt-3 text-sm text-slate-700 bg-slate-50 rounded-xl p-3 border border-slate-100">
-                          {c.description}
-                        </p>
+                    if (filteredComplaints.length === 0) {
+                      return <div className="p-12 text-center text-slate-500 font-medium">No complaints match the selected filter.</div>;
+                    }
 
-                        {c.relatedRouteId && (
-                          <div className="mt-2 flex items-center space-x-2 text-xs text-slate-500">
-                            <span>🗺️ Related Route: <strong>{c.relatedRouteId.name}</strong></span>
-                          </div>
-                        )}
-
-                        {c.resolutionNote && (
-                          <div className="mt-3 text-xs bg-green-50/40 text-green-800 rounded-xl p-3 border border-green-100/50">
-                            <strong>Support Note:</strong> {c.resolutionNote}
-                          </div>
-                        )}
-
-                        {c.status !== 'resolved' && (
-                          <div className="mt-4 border-t border-slate-100 pt-4 flex flex-col space-y-3">
-                            {selectedComplaintId === c._id ? (
-                              <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-slate-700">Resolution Note</label>
-                                <textarea
-                                  value={complaintNote}
-                                  onChange={(e) => setComplaintNote(e.target.value)}
-                                  placeholder="Add resolution or update notes..."
-                                  rows={2}
-                                  className="w-full text-sm rounded-xl border border-slate-300 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500"
-                                />
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={() => updateComplaintStatus(c._id, 'resolved', complaintNote)}
-                                    disabled={isSubmittingComplaintNote}
-                                    className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition disabled:bg-green-300"
-                                  >
-                                    Resolve Complaint
-                                  </button>
-                                  <button
-                                    onClick={() => updateComplaintStatus(c._id, 'in-progress', complaintNote)}
-                                    disabled={isSubmittingComplaintNote}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition disabled:bg-blue-300"
-                                  >
-                                    Mark In-Progress
-                                  </button>
-                                  <button
-                                    onClick={() => { setSelectedComplaintId(''); setComplaintNote(''); }}
-                                    className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-4 py-2 rounded-lg transition"
-                                  >
-                                    Cancel
-                                  </button>
+                    return (
+                      <>
+                        <div className="divide-y divide-slate-100">
+                          {currentComplaints.map((c) => (
+                            <div key={c._id} className="p-6 hover:bg-slate-50/50 transition">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <div className="flex items-center space-x-3">
+                                    <span className="font-bold text-slate-900 text-base">{c.category}</span>
+                                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                      c.status === 'resolved'
+                                        ? 'bg-green-50 text-green-700 border border-green-200'
+                                        : c.status === 'in-progress'
+                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    }`}>
+                                      {c.status}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    Submitted by: <strong className="text-slate-600">{c.userId?.name || 'Passenger'}</strong> ({c.userId?.email || 'N/A'}) • Filed on {new Date(c.createdAt).toLocaleDateString()}
+                                  </p>
                                 </div>
                               </div>
-                            ) : (
+
+                              <p className="mt-3 text-sm text-slate-700 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                {c.description}
+                              </p>
+
+                              {c.relatedRouteId && (
+                                <div className="mt-2 flex items-center space-x-2 text-xs text-slate-500">
+                                  <span>🗺️ Related Route: <strong>{c.relatedRouteId.name}</strong></span>
+                                </div>
+                              )}
+
+                              {c.resolutionNote && (
+                                <div className="mt-3 text-xs bg-green-50/40 text-green-800 rounded-xl p-3 border border-green-100/50">
+                                  <strong>Support Note:</strong> {c.resolutionNote}
+                                </div>
+                              )}
+
+                              {c.status !== 'resolved' && (
+                                <div className="mt-4 border-t border-slate-100 pt-4 flex flex-col space-y-3">
+                                  {selectedComplaintId === c._id ? (
+                                    <div className="space-y-2">
+                                      <label className="block text-xs font-semibold text-slate-700">Resolution Note</label>
+                                      <textarea
+                                        value={complaintNote}
+                                        onChange={(e) => setComplaintNote(e.target.value)}
+                                        placeholder="Add resolution or update notes..."
+                                        rows={2}
+                                        className="w-full text-sm rounded-xl border border-slate-300 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500"
+                                      />
+                                      <div className="flex space-x-2">
+                                        <button
+                                          onClick={() => updateComplaintStatus(c._id, 'resolved', complaintNote)}
+                                          disabled={isSubmittingComplaintNote}
+                                          className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition disabled:bg-green-300"
+                                        >
+                                          Resolve Complaint
+                                        </button>
+                                        <button
+                                          onClick={() => updateComplaintStatus(c._id, 'in-progress', complaintNote)}
+                                          disabled={isSubmittingComplaintNote}
+                                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition disabled:bg-blue-300"
+                                        >
+                                          Mark In-Progress
+                                        </button>
+                                        <button
+                                          onClick={() => { setSelectedComplaintId(''); setComplaintNote(''); }}
+                                          className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-4 py-2 rounded-lg transition"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => setSelectedComplaintId(c._id)}
+                                      className="self-start text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                                    >
+                                      ✍️ Manage & Resolve
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                           {/* Pagination Controls */}
+                        {totalComplaintPages > 1 && (
+                          <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center justify-between">
+                            <div className="text-xs text-slate-500 font-semibold">
+                              Showing {indexOfFirstComplaint + 1} to {Math.min(indexOfLastComplaint, filteredComplaints.length)} of {filteredComplaints.length} entries
+                            </div>
+                            <div className="flex items-center space-x-1">
                               <button
-                                onClick={() => setSelectedComplaintId(c._id)}
-                                className="self-start text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                                onClick={() => setComplaintsCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={complaintsCurrentPage === 1}
+                                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-655 hover:bg-slate-50 disabled:opacity-50 transition"
                               >
-                                ✍️ Manage & Resolve
+                                Prev
                               </button>
-                            )}
+                              {Array.from({ length: totalComplaintPages }, (_, i) => i + 1).map((pg) => (
+                                <button
+                                  key={pg}
+                                  onClick={() => setComplaintsCurrentPage(pg)}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                                    complaintsCurrentPage === pg
+                                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10'
+                                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  {pg}
+                                </button>
+                              ))}
+                              <button
+                                onClick={() => setComplaintsCurrentPage(prev => Math.min(prev + 1, totalComplaintPages))}
+                                disabled={complaintsCurrentPage === totalComplaintPages}
+                                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-655 hover:bg-slate-50 disabled:opacity-50 transition"
+                              >
+                                Next
+                              </button>
+                            </div>
                           </div>
                         )}
-                      </div>
-                    ))}
-                  </div>
+                      </>
+                    );
+                  })()
                 ) : (
                   <div className="p-8 text-center text-slate-500 font-medium">No complaints found.</div>
                 )}
@@ -3093,8 +3178,75 @@ export default function AdminDashboardPage() {
               {isLoadingOptimization ? (
                 <div className="p-12 text-center text-slate-500 font-medium">Analyzing historical transit logs...</div>
               ) : optimizationRecommendations ? (
-                <div className="grid gap-6 md:grid-cols-3">
-                  {/* Delayed Routes Card */}
+                <div className="space-y-6">
+                  {/* Optimization Analytics Graphs */}
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Graph 1: Average Delays per Route */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+                      <h3 className="text-base font-bold text-slate-900">Average Route Delay Times</h3>
+                      <p className="text-xs text-slate-400">Comparing average traffic delays (in minutes) across frequently delayed routes</p>
+                      
+                      <div className="h-60 relative">
+                        <Bar
+                          data={{
+                            labels: optimizationRecommendations.delayedRoutes?.map(r => r.routeName.split(':')[0]) || [],
+                            datasets: [{
+                              label: 'Avg Delay (Minutes)',
+                              data: optimizationRecommendations.delayedRoutes?.map(r => r.averageDelayMinutes) || [],
+                              backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                              borderColor: 'rgba(239, 68, 68, 1)',
+                              borderWidth: 1.5,
+                              borderRadius: 8
+                            }]
+                          }}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                              y: { beginAtZero: true, ticks: { font: { weight: 'bold' }, color: '#94a3b8' } },
+                              x: { ticks: { font: { weight: 'bold' }, color: '#94a3b8' } }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Graph 2: Peak Crowding Loads */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+                      <h3 className="text-base font-bold text-slate-900">Bus Crowding & Capacity Load</h3>
+                      <p className="text-xs text-slate-400">Peak load percentages relative to standard vehicle seating capacity</p>
+                      
+                      <div className="h-60 relative">
+                        <Bar
+                          data={{
+                            labels: optimizationRecommendations.overloadedBuses?.map(b => `Bus ${b.busNumber}`) || [],
+                            datasets: [{
+                              label: 'Peak Load %',
+                              data: optimizationRecommendations.overloadedBuses?.map(b => b.loadPercentage) || [],
+                              backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                              borderColor: 'rgba(16, 185, 129, 1)',
+                              borderWidth: 1.5,
+                              borderRadius: 8
+                            }]
+                          }}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                              y: { beginAtZero: true, max: 120, ticks: { font: { weight: 'bold' }, color: '#94a3b8' } },
+                              x: { ticks: { font: { weight: 'bold' }, color: '#94a3b8' } }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recommendations Cards Grid */}
+                  <div className="grid gap-6 md:grid-cols-3">
+                    {/* Delayed Routes Card */}
                   <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                     <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                       ⏰ Frequently Delayed Routes
@@ -3157,6 +3309,7 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 </div>
+              </div>
               ) : (
                 <div className="p-8 text-center text-slate-500">Failed to load recommendations.</div>
               )}
