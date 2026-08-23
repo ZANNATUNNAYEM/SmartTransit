@@ -5,6 +5,7 @@ import { connectDB } from '@/lib/db';
 import Bus from '@/models/Bus';
 import Route from '@/models/Route';
 import Trip from '@/models/Trip';
+import { fetchWeather } from '@/lib/weather';
 
 
 
@@ -170,7 +171,59 @@ export async function GET(request) {
         speed
       );
 
+    const weatherOverride = searchParams.get('weatherOverride');
+    let weatherInfo = null;
+    let advisory = null;
 
+    if (weatherOverride) {
+      if (weatherOverride === 'moderate' || weatherOverride === 'Rain') {
+        weatherInfo = {
+          condition: 'Rain',
+          temp: 24,
+          humidity: 85,
+          severity: 'moderate',
+          timestamp: Date.now(),
+          mock: true
+        };
+        eta = Math.ceil(eta * 1.25);
+        advisory = 'Travel Advisory: Moderate rain is causing slight delays. Bus speed has been adjusted. Please plan ahead.';
+      } else if (weatherOverride === 'severe' || weatherOverride === 'Thunderstorm') {
+        weatherInfo = {
+          condition: 'Thunderstorm',
+          temp: 21,
+          humidity: 90,
+          severity: 'severe',
+          timestamp: Date.now(),
+          mock: true
+        };
+        eta = Math.ceil(eta * 1.6);
+        advisory = 'Severe Travel Warning: Severe weather conditions detected. Major traffic delays expected. Stay safe and avoid unnecessary travel if possible.';
+      } else {
+        weatherInfo = {
+          condition: 'Clear',
+          temp: 30,
+          humidity: 60,
+          severity: 'none',
+          timestamp: Date.now(),
+          mock: true
+        };
+      }
+    } else {
+      try {
+        weatherInfo = await fetchWeather(busLat, busLng);
+        if (weatherInfo) {
+          if (weatherInfo.severity === 'moderate') {
+            eta = Math.ceil(eta * 1.25);
+            advisory = 'Travel Advisory: Moderate rain is causing slight delays. Bus speed has been adjusted. Please plan ahead.';
+          } else if (weatherInfo.severity === 'severe') {
+            eta = Math.ceil(eta * 1.6);
+            advisory = 'Severe Travel Warning: Severe weather conditions detected. Major traffic delays expected. Stay safe and avoid unnecessary travel if possible.';
+          }
+        }
+      } catch (weatherErr) {
+        console.error('Failed to fetch weather info for ETA calculation:', weatherErr);
+      }
+    }
 
     if (trip?.delayMinutes) {
 
@@ -194,7 +247,11 @@ export async function GET(request) {
         ),
 
       etaMinutes:
-        eta
+        eta,
+
+      weather: weatherInfo,
+
+      advisory: advisory
     });
 
  } catch(error) {
