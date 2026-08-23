@@ -9,7 +9,7 @@ const FeedbackSchema = new mongoose.Schema(
     },
     tripId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Trip',
+      ref: 'PassengerJourney',
       required: true,
     },
     rating: {

@@ -7,6 +7,15 @@ const LostItemSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    busId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Bus',
+    },
+
+    tripId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PassengerJourney',
+    },    
     description: {
       type: String,
       required: true,
