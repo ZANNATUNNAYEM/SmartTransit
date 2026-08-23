@@ -54,6 +54,15 @@ export default function DriverDashboardPage() {
   const [maintenanceDescription, setMaintenanceDescription] = useState('');
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   const [maintenanceMessage, setMaintenanceMessage] = useState('');
+  
+  // Weather states
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [simulatedWeather, setSimulatedWeather] = useState('none');
+  const [weatherEtaData, setWeatherEtaData] = useState(null);
+  const [weatherEtaLoading, setWeatherEtaLoading] = useState(false);
+  const [localWeather, setLocalWeather] = useState(null);
+  const [isLoadingLocalWeather, setIsLoadingLocalWeather] = useState(false);
+
   async function loadAssignedBus() {
     try {
       const response = await fetch(
@@ -72,6 +81,7 @@ export default function DriverDashboardPage() {
 
         if (data.bus) {
           setBusStatus(data.bus.status);
+          loadWeatherETA(data.bus._id, simulatedWeather);
         }
       }
     } catch (error) {
@@ -81,6 +91,61 @@ export default function DriverDashboardPage() {
       );
     }
   }
+
+  async function loadWeatherETA(busId, override) {
+    if (!busId) return;
+    try {
+      setWeatherEtaLoading(true);
+      const url = `/api/passenger/eta?busId=${busId}${override !== 'none' ? `&weatherOverride=${override}` : ''}`;
+      const response = await fetch(url, { cache: 'no-store' });
+      const data = await response.json();
+      if (response.ok) {
+        setWeatherEtaData(data);
+      }
+    } catch (error) {
+      console.error('Loading weather ETA failed:', error);
+    } finally {
+      setWeatherEtaLoading(false);
+    }
+  }
+
+  async function fetchLocalWeather() {
+    try {
+      setIsLoadingLocalWeather(true);
+      let lat = 23.8103;
+      let lng = 90.4125;
+      
+      if (navigator.geolocation) {
+        await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              lat = pos.coords.latitude;
+              lng = pos.coords.longitude;
+              resolve();
+            },
+            () => resolve()
+          );
+        });
+      }
+      
+      const response = await fetch(`/api/weather?lat=${lat}&lng=${lng}`, { cache: 'no-store' });
+      const data = await response.json();
+      if (response.ok) {
+        setLocalWeather(data);
+      }
+    } catch (error) {
+      console.error('Fetch local weather failed:', error);
+    } finally {
+      setIsLoadingLocalWeather(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'weather') {
+      fetchLocalWeather();
+      if (assignedBus) loadWeatherETA(assignedBus._id, 'none');
+    }
+  }, [activeTab, assignedBus]);
 
   async function loadTripHistory() {
     try {
@@ -1358,6 +1423,36 @@ export default function DriverDashboardPage() {
         </div>
       </header>
 
+      {/* Sub-header navigation tabs */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-6xl px-6 flex space-x-6">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`py-4 px-1 text-sm font-bold border-b-2 transition-all ${
+              activeTab === 'dashboard'
+                ? 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            📋 Dashboard
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('weather');
+              if (assignedBus) loadWeatherETA(assignedBus._id, simulatedWeather);
+            }}
+            className={`py-4 px-1 text-sm font-bold border-b-2 transition-all ${
+              activeTab === 'weather'
+                ? 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            🌤️ Weather & ETA Info
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'dashboard' && (
       <section className="mx-auto max-w-6xl px-6 py-10">
 
         <div className="rounded-2xl bg-gradient-to-r from-emerald-700 to-emerald-500 p-8 text-white">
@@ -1979,6 +2074,195 @@ export default function DriverDashboardPage() {
         </div>
 
       </section>
+      )}
+
+      {activeTab === 'weather' && (
+      <section className="mx-auto max-w-6xl px-6 py-10">
+        {/* Weather view for drivers */}
+        <article className="rounded-2xl bg-white p-8 shadow-sm">
+          <div>
+            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              🌤️ Route Weather & Adjusted Arrival Times
+            </h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Check weather hazards along your assigned route stops and track the current dispatch-adjusted arrival estimates.
+            </p>
+          </div>
+
+          {/* Real-time Weather at Your Location */}
+          {localWeather && (
+            <>
+              <div className="mt-6 p-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider opacity-85">Route Weather Conditions</span>
+                    <h4 className="text-2xl font-extrabold mt-1">{localWeather.temp}°C</h4>
+                    <p className="text-xs mt-1 opacity-90 capitalize">🌤️ {localWeather.condition} • Humidity: {localWeather.humidity}%</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs bg-white/25 px-3 py-1 rounded-full font-bold">Live Data</span>
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-white/20 text-xs">
+                  <span className="font-bold">System Advisory: </span>
+                  {localWeather.severity === 'severe' ? (
+                    <span>🚨 Severe weather alert in effect. A 60% delay buffer is being broadcasted to all passenger arrival screens. Drive safely.</span>
+                  ) : localWeather.severity === 'moderate' ? (
+                    <span>⚠️ Rain detected. A 25% delay buffer is currently active. Drive with extra caution on wet roads.</span>
+                  ) : (
+                    <span>🟢 Clear weather condition. Transit schedules are active and running under standard timetables.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Grid of Weather Detail Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                {/* Temp Card */}
+                <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col justify-between">
+                  <div>
+                    <span className="text-xl">🌡️</span>
+                    <h6 className="text-xs font-semibold text-slate-500 mt-2">Temperature</h6>
+                  </div>
+                  <p className="text-lg font-bold text-slate-800 mt-1">{localWeather.temp}°C</p>
+                </div>
+
+                {/* Humidity Card */}
+                <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col justify-between">
+                  <div>
+                    <span className="text-xl">💧</span>
+                    <h6 className="text-xs font-semibold text-slate-500 mt-2">Humidity</h6>
+                  </div>
+                  <p className="text-lg font-bold text-slate-800 mt-1">{localWeather.humidity}%</p>
+                </div>
+
+                {/* Wind Card */}
+                <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col justify-between">
+                  <div>
+                    <span className="text-xl">💨</span>
+                    <h6 className="text-xs font-semibold text-slate-500 mt-2">Wind Speed</h6>
+                  </div>
+                  <p className="text-lg font-bold text-slate-800 mt-1">
+                    {localWeather.severity === 'severe' ? '12.5 m/s' : localWeather.severity === 'moderate' ? '6.8 m/s' : '3.2 m/s'}
+                  </p>
+                </div>
+
+                {/* Visibility Card */}
+                <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col justify-between">
+                  <div>
+                    <span className="text-xl">👁️</span>
+                    <h6 className="text-xs font-semibold text-slate-500 mt-2">Visibility</h6>
+                  </div>
+                  <p className="text-lg font-bold text-slate-800 mt-1">
+                    {localWeather.severity === 'severe' ? '3.5 km' : localWeather.severity === 'moderate' ? '7.0 km' : '10 km'}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Active Travel Alert Box */}
+          {weatherEtaData?.advisory && (
+            <div className={`mt-5 p-4 rounded-xl border flex items-start gap-3 ${
+              weatherEtaData.weather?.severity === 'severe'
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : 'bg-amber-50 border-amber-200 text-amber-800'
+            }`}>
+              <span className="text-xl">⚠️</span>
+              <div>
+                <h5 className="font-bold text-sm">Active Route Travel Alert</h5>
+                <p className="mt-0.5 text-xs leading-normal">{weatherEtaData.advisory}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Timeline of Route Stops */}
+          <div className="mt-8 border-t pt-6">
+            <h4 className="text-base font-bold text-slate-900 mb-4">Route Stop Timeline</h4>
+            {assignedBus ? (
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/55">
+                  <div>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Assigned Bus</span>
+                    <h5 className="font-bold text-slate-800 text-sm mt-0.5">Bus {assignedBus.busNumber}</h5>
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Weather Condition</span>
+                    <p className="text-sm font-bold text-slate-700 mt-0.5">
+                      🌤️ {weatherEtaData?.weather?.condition || 'Clear'} ({weatherEtaData?.weather?.temp || 28}°C)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative pl-6 border-l-2 border-slate-200 space-y-6 ml-2">
+                  {assignedBus.routeId?.stops?.map((stop, index) => {
+                    const isLast = index === (assignedBus.routeId.stops.length - 1);
+                    return (
+                      <div key={stop._id || stop.id || index} className="relative">
+                        <span className={`absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 bg-white ${
+                          isLast ? 'border-red-500' : 'border-blue-600'
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${
+                            isLast ? 'bg-red-500' : 'bg-blue-600'
+                          }`} />
+                        </span>
+                        
+                        <div className="flex flex-wrap justify-between items-start gap-2">
+                          <div>
+                            <h6 className="font-semibold text-sm text-slate-800">{stop.name}</h6>
+                            <p className="text-xs text-slate-400 mt-0.5">Stop {index + 1}</p>
+                          </div>
+                          <div className="text-right">
+                            {weatherEtaData && (
+                              <>
+                                <span className="text-sm font-bold text-blue-700">
+                                  ~ {Math.ceil(weatherEtaData.etaMinutes * (index + 1) / assignedBus.routeId.stops.length)} mins
+                                </span>
+                                 <p className="text-[10px] text-slate-400 mt-0.5">
+                                   {weatherEtaData.distanceRemaining ? `${(weatherEtaData.distanceRemaining * (index + 1) / assignedBus.routeId.stops.length).toFixed(1)} km left` : ''}
+                                 </p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 text-center text-slate-500 border border-dashed rounded-2xl">
+                <p className="text-sm font-medium">No bus assigned to you currently.</p>
+                <p className="text-xs text-slate-400 mt-1">Load the preview route below to explore the weather dashboard functionality.</p>
+                
+                <div className="mt-4 max-w-xs mx-auto">
+                  <button
+                    onClick={() => {
+                      setAssignedBus({
+                        _id: '6a78e667cf39d3a508afed88',
+                        busNumber: 'TR-4020',
+                        routeId: {
+                          name: 'Route 1: City Center to Station',
+                          stops: [
+                            { _id: '1', name: 'City Center Terminal' },
+                            { _id: '2', name: 'University Campus Gate' },
+                            { _id: '3', name: 'SmartTransit Central Station' }
+                          ]
+                        }
+                      });
+                      loadWeatherETA('6a78e667cf39d3a508afed88', simulatedWeather);
+                    }}
+                    className="w-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold py-2 rounded-xl hover:bg-emerald-100 transition"
+                  >
+                    📂 Load Demo Route Preview
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+      </section>
+      )}
 
     </main>
   );
