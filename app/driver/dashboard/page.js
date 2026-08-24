@@ -141,10 +141,26 @@ export default function DriverDashboardPage() {
   }
 
   useEffect(() => {
-    if (activeTab === 'weather') {
-      fetchLocalWeather();
-      if (assignedBus) loadWeatherETA(assignedBus._id, 'none');
+
+    if (activeTab !== 'weather') return;
+
+
+    async function loadWeather(){
+
+      await fetchLocalWeather();
+
+      if (assignedBus) {
+        await loadWeatherETA(
+          assignedBus._id,
+          'none'
+        );
+      }
+
     }
+
+
+    loadWeather();
+
   }, [activeTab, assignedBus]);
 
   async function loadTripHistory() {
