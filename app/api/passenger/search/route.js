@@ -61,15 +61,28 @@ export async function GET(request) {
 
         const busMatch =
           bus.busNumber &&
-          bus.busNumber.match(searchRegex);
+          searchRegex.test(bus.busNumber);
+
 
         const routeMatch =
           bus.routeId &&
-          bus.routeId.name.match(searchRegex);
+          searchRegex.test(bus.routeId.name);
+
+
+        const stopMatch =
+          bus.routeId &&
+          bus.routeId.stops &&
+          bus.routeId.stops.some(
+            (stop) =>
+              stop.name &&
+              searchRegex.test(stop.name)
+          );
+
 
         return (
           busMatch ||
-          routeMatch
+          routeMatch ||
+          stopMatch
         );
       });
 

@@ -38,6 +38,10 @@ export default function DriverDashboardPage() {
     totalDistance: 0,
     averageDuration: 0,
   });
+  const [attendanceHistory, setAttendanceHistory] = useState([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [performanceReport, setPerformanceReport] = useState(null);
+  const [performanceLoading, setPerformanceLoading] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -45,6 +49,11 @@ export default function DriverDashboardPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [maintenanceCategory, setMaintenanceCategory] = useState('');
+  const [maintenanceSeverity, setMaintenanceSeverity] = useState('medium');
+  const [maintenanceDescription, setMaintenanceDescription] = useState('');
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState('');
   
   // Weather states
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -132,10 +141,26 @@ export default function DriverDashboardPage() {
   }
 
   useEffect(() => {
-    if (activeTab === 'weather') {
-      fetchLocalWeather();
-      if (assignedBus) loadWeatherETA(assignedBus._id, 'none');
+
+    if (activeTab !== 'weather') return;
+
+
+    async function loadWeather(){
+
+      await fetchLocalWeather();
+
+      if (assignedBus) {
+        await loadWeatherETA(
+          assignedBus._id,
+          'none'
+        );
+      }
+
     }
+
+
+    loadWeather();
+
   }, [activeTab, assignedBus]);
 
   async function loadTripHistory() {
@@ -195,6 +220,100 @@ export default function DriverDashboardPage() {
       );
     }
   }
+
+  async function loadAttendanceHistory() {
+
+    try {
+
+      setAttendanceLoading(true);
+
+
+      const response =
+        await fetch(
+          '/api/driver/attendance/history',
+          {
+            credentials:'include',
+            cache:'no-store',
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(response.ok){
+
+        setAttendanceHistory(
+          data.attendance || []
+        );
+
+      }
+
+
+    } catch(error){
+
+      console.error(
+        'Attendance history loading failed:',
+        error
+      );
+
+    }
+    finally{
+
+      setAttendanceLoading(false);
+
+    }
+
+  }  
+
+  async function loadPerformanceReport(){
+
+    try{
+
+      setPerformanceLoading(true);
+
+
+      const response =
+        await fetch(
+          '/api/driver/performance',
+          {
+            credentials:'include',
+            cache:'no-store',
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(response.ok){
+
+        setPerformanceReport(
+          data.performance
+        );
+
+      }
+
+
+    }
+    catch(error){
+
+      console.error(
+        'Performance loading failed:',
+        error
+      );
+
+    }
+    finally{
+
+      setPerformanceLoading(false);
+
+    }
+
+  }  
+
   async function loadNotifications(showLoading = false) {
     try {
       if (showLoading) {
@@ -237,7 +356,6 @@ export default function DriverDashboardPage() {
       }
     }
   }
-
 
   async function markNotificationAsRead(
     notificationId
@@ -286,7 +404,6 @@ export default function DriverDashboardPage() {
       );
     }
   }
-
 
   function formatNotificationDate(
     dateValue
@@ -576,6 +693,8 @@ export default function DriverDashboardPage() {
 
         await loadAssignedBus();
         await loadTripHistory();
+        await loadAttendanceHistory();
+        await loadPerformanceReport();
       } catch (error) {
         console.error(
           'Driver dashboard request failed:',
@@ -742,6 +861,20 @@ export default function DriverDashboardPage() {
 
       setActiveTrip(data.trip);
 
+
+      // Record driver attendance
+
+      await fetch(
+        '/api/driver/attendance',
+        {
+          method: 'POST',
+
+          credentials:
+            'include',
+        }
+      );
+
+
       setTripMessage(
         'Trip started successfully'
       );
@@ -871,7 +1004,155 @@ export default function DriverDashboardPage() {
       setStatusLoading(false);
     }
   }
+  async function submitMaintenanceReport() {
 
+    try {
+
+      setMaintenanceLoading(true);
+      setMaintenanceMessage('');
+
+      if (!assignedBus) {
+
+        setMaintenanceMessage(
+          'No assigned bus found.'
+        );
+
+        return;
+
+      }
+
+
+      if (!maintenanceCategory) {
+
+        setMaintenanceMessage(
+          'Please select an issue category.'
+        );
+
+        return;
+
+      }
+
+
+      const getLocation = () => {
+
+        return new Promise(
+          (resolve, reject) => {
+
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+
+                resolve({
+                  type: 'Point',
+
+                  coordinates: [
+                    position.coords.longitude,
+                    position.coords.latitude,
+                  ],
+                });
+
+              },
+
+              () => {
+
+                reject(
+                  new Error(
+                    'Unable to get current location'
+                  )
+                );
+
+              }
+
+            );
+
+          }
+        );
+
+      };
+
+
+      const location =
+        await getLocation();
+
+
+      const response =
+        await fetch(
+          '/api/driver/maintenance-reports',
+          {
+            method:'POST',
+
+            headers:{
+              'Content-Type':
+                'application/json',
+            },
+
+            credentials:'include',
+
+            body:
+              JSON.stringify({
+
+                busId:
+                  assignedBus._id,
+
+                category:
+                  maintenanceCategory,
+
+                severity:
+                  maintenanceSeverity,
+
+                location,
+
+                images:[],
+
+              }),
+
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        setMaintenanceMessage(
+          data.error ||
+          'Unable to submit report.'
+        );
+
+        return;
+
+      }
+
+
+      setMaintenanceMessage(
+        'Maintenance report submitted successfully.'
+      );
+
+
+      setMaintenanceCategory('');
+      setMaintenanceSeverity('medium');
+
+    } catch(error) {
+
+      console.error(
+        'Maintenance report error:',
+        error
+      );
+
+
+      setMaintenanceMessage(
+        error.message ||
+        'Something went wrong.'
+      );
+
+    } finally {
+
+      setMaintenanceLoading(false);
+
+    }
+
+  }
   async function handleLogout() {
     try {
       setIsLoggingOut(true);
@@ -1465,6 +1746,347 @@ export default function DriverDashboardPage() {
 
           </article>
 
+          <article className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+
+            <h3 className="text-lg font-bold text-slate-900">
+              Attendance History
+            </h3>
+
+
+            <p className="mt-2 text-sm text-slate-600">
+              View your attendance records and check-in history.
+            </p>
+
+
+
+            <div className="mt-4 space-y-3">
+
+
+              {attendanceLoading ? (
+
+                <p className="text-sm text-slate-500">
+                  Loading attendance...
+                </p>
+
+
+              ) : attendanceHistory.length === 0 ? (
+
+                <p className="text-sm text-slate-500">
+                  No attendance records found.
+                </p>
+
+
+              ) : (
+
+
+                attendanceHistory
+                  .slice(0, 5)
+                  .map((attendance) => (
+
+
+                    <div
+                      key={attendance._id}
+                      className="
+                        rounded-lg
+                        bg-slate-100
+                        p-4
+                      "
+                    >
+
+                      <div className="flex justify-between">
+
+
+                        <p className="font-semibold text-slate-900">
+
+                          {
+                            new Date(
+                              attendance.date
+                            ).toLocaleDateString()
+                          }
+
+                        </p>
+
+
+                        <span className="
+                          rounded-full
+                          bg-emerald-100
+                          px-3
+                          py-1
+                          text-xs
+                          font-semibold
+                          text-emerald-700
+                        ">
+
+                          {
+                            attendance.status
+                          }
+
+                        </span>
+
+
+                      </div>
+
+
+                      <p className="mt-2 text-sm text-slate-600">
+
+                        Check In:
+
+                        {' '}
+
+                        {
+                          attendance.checkInTime ||
+                          'N/A'
+                        }
+
+                      </p>
+
+
+                    </div>
+
+
+                  ))
+
+              )}
+
+
+            </div>
+
+
+          </article>
+
+          <article className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+
+            <h3 className="text-lg font-bold text-slate-900">
+              Monthly Performance Report
+            </h3>
+
+
+            <p className="mt-2 text-sm text-slate-600">
+              Review your trip performance, punctuality,
+              and operational efficiency.
+            </p>
+
+
+
+            {performanceLoading ? (
+
+              <p className="mt-4 text-sm text-slate-500">
+                Loading performance report...
+              </p>
+
+
+            ) : !performanceReport ? (
+
+              <p className="mt-4 text-sm text-slate-500">
+                No performance data available.
+              </p>
+
+
+            ) : (
+
+
+              <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
+
+
+                <div className="rounded-lg bg-slate-100 p-4">
+
+                  <p className="text-slate-500">
+                    Completed Trips
+                  </p>
+
+                  <p className="text-xl font-bold text-slate-900">
+                    {performanceReport.completedTrips}
+                  </p>
+
+                </div>
+
+
+
+                <div className="rounded-lg bg-slate-100 p-4">
+
+                  <p className="text-slate-500">
+                    Delayed Trips
+                  </p>
+
+                  <p className="text-xl font-bold text-slate-900">
+                    {performanceReport.delayedTrips}
+                  </p>
+
+                </div>
+
+
+
+                <div className="rounded-lg bg-slate-100 p-4">
+
+                  <p className="text-slate-500">
+                    Punctuality
+                  </p>
+
+                  <p className="text-xl font-bold text-slate-900">
+                    {performanceReport.punctuality}%
+                  </p>
+
+                </div>
+
+
+
+                <div className="rounded-lg bg-slate-100 p-4">
+
+                  <p className="text-slate-500">
+                    Rating
+                  </p>
+
+                  <p className="text-xl font-bold text-emerald-700">
+                    {performanceReport.rating}
+                  </p>
+
+                </div>
+
+
+
+                <div className="rounded-lg bg-slate-100 p-4">
+
+                  <p className="text-slate-500">
+                    Distance
+                  </p>
+
+                  <p className="text-xl font-bold text-slate-900">
+                    {performanceReport.totalDistance} km
+                  </p>
+
+                </div>
+
+
+
+                <div className="rounded-lg bg-slate-100 p-4">
+
+                  <p className="text-slate-500">
+                    Avg Duration
+                  </p>
+
+                  <p className="text-xl font-bold text-slate-900">
+                    {performanceReport.averageDuration} min
+                  </p>
+
+                </div>
+
+
+              </div>
+
+            )}
+
+
+          </article>
+
+          <article className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+
+            <h3 className="text-lg font-bold text-slate-900">
+              Maintenance & Incident Reporting
+            </h3>
+
+            <p className="mt-2 text-sm text-slate-600">
+              Report bus breakdowns, maintenance issues,
+              accidents, or operational incidents.
+            </p>
+
+
+            <div className="mt-5 space-y-4">
+
+              <select
+                value={maintenanceCategory}
+                onChange={(e) =>
+                  setMaintenanceCategory(
+                    e.target.value
+                  )
+                }
+                className="w-full rounded-lg border border-slate-500 px-3 py-2 text-sm text-sm text-slate-700 bg-white"
+              >
+
+                <option className="text-slate-900" value="">
+                  Select Issue Category
+                </option>
+
+                <option className="text-slate-900" value="breakdown">
+                  Breakdown
+                </option>
+
+                <option className="text-slate-900" value="maintenance">
+                  Maintenance Required
+                </option>
+
+                <option className="text-slate-900" value="accident">
+                  Accident
+                </option>
+
+                <option value="operational">
+                  Operational Issue
+                </option>
+
+              </select>
+
+
+              <select
+                value={maintenanceSeverity}
+                onChange={(e) =>
+                  setMaintenanceSeverity(
+                    e.target.value
+                  )
+                }
+                className="w-full rounded-lg border border-slate-500 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 bg-white"
+              >
+
+                <option value="low">
+                  Low Severity
+                </option>
+
+                <option value="medium">
+                  Medium Severity
+                </option>
+
+                <option value="high">
+                  High Severity
+                </option>
+
+              </select>
+
+
+              <textarea
+                value={maintenanceDescription}
+                onChange={(e) =>
+                  setMaintenanceDescription(
+                    e.target.value
+                  )
+                }
+                placeholder="Describe the issue..."
+                className="min-h-28 w-full rounded-lg border border-slate-500 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 bg-white"
+              />
+
+
+              <button
+                type="button"
+                onClick={submitMaintenanceReport}
+                disabled={maintenanceLoading}
+                className="rounded-lg bg-emerald-600 px-5 py-2.5 font-semibold text-white disabled:opacity-50"
+              >
+
+                {maintenanceLoading
+                  ? 'Submitting...'
+                  : 'Submit Report'}
+
+              </button>
+
+
+              {maintenanceMessage && (
+
+                <p className="text-sm text-emerald-700">
+                  {maintenanceMessage}
+                </p>
+
+              )}
+
+            </div>
+
+          </article>
         </div>
 
       </section>

@@ -1270,11 +1270,29 @@ export default function PassengerDashboardPage() {
   }
 
   useEffect(() => {
-    if (activeMenu === 'weather') {
-      fetchLocalWeather();
-      if (liveBus) loadWeatherETA(liveBus._id, 'none');
+
+    if (activeMenu !== 'weather') return;
+
+
+    async function loadWeather(){
+
+      await fetchLocalWeather();
+
+
+      if (liveBus) {
+        await loadWeatherETA(
+          liveBus._id,
+          'none'
+        );
+      }
+
     }
-  }, [activeMenu]);
+
+
+    loadWeather();
+
+
+  }, [activeMenu, liveBus]);
 
   async function handleSearch() {
 
@@ -2843,9 +2861,9 @@ export default function PassengerDashboardPage() {
           <div className="space-y-5">
 
 
-          {searchResults.buses.length > 0 && (
+          {searchResults.buses.map((bus) => (
 
-          <div className="rounded-xl border border-slate-200 p-5">
+          <div key={bus._id} className="rounded-xl border border-slate-200 p-5">
 
           <h4 className="text-lg font-bold text-slate-900">
           🚌 Bus Information
@@ -2854,13 +2872,13 @@ export default function PassengerDashboardPage() {
 
           <p className="mt-3 text-sm text-slate-700">
           <strong>Bus Number:</strong>{" "}
-          {searchResults.buses[0].busNumber}
+          {bus.busNumber}
           </p>
 
 
           <p className="mt-2 text-sm text-slate-700">
           <strong>Status:</strong>{" "}
-          {searchResults.buses[0].status}
+          {bus.status}
           </p>
           {eta && (
           <>
@@ -2893,7 +2911,7 @@ export default function PassengerDashboardPage() {
 
           <p className="mt-2 text-sm text-slate-700">
           <strong>Driver:</strong>{" "}
-          {searchResults.buses[0].driverId?.name}
+          {bus.driverId?.name}
           </p>
           <div className="mt-5 border-t border-slate-200 pt-5">
 
@@ -2923,7 +2941,7 @@ export default function PassengerDashboardPage() {
                     Select starting stop
                   </option>
 
-                  {searchResults.buses[0].routeId?.stops?.map(
+                  {bus.routeId?.stops?.map(
                     (stop) => (
                       <option
                         key={stop._id}
@@ -2957,7 +2975,7 @@ export default function PassengerDashboardPage() {
                     Select destination
                   </option>
 
-                  {searchResults.buses[0].routeId?.stops?.map(
+                  {bus.routeId?.stops?.map(
                     (stop) => (
                       <option
                         key={stop._id}
@@ -2988,7 +3006,7 @@ export default function PassengerDashboardPage() {
 
           </div>
 
-          )}
+          ))}
 
 
 
