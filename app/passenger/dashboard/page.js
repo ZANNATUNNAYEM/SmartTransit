@@ -1814,14 +1814,18 @@ export default function PassengerDashboardPage() {
           strategy="afterInteractive"
         />
         <aside className="
-          w-64
+          w-20
+          sm:w-64
           min-h-screen
           bg-white
           border-r
-          p-5
+          p-3
+          sm:p-5
+          shrink-0
         ">
 
           <h1 className="
+            hidden sm:block
             text-2xl
             font-bold
             text-blue-700
@@ -1832,6 +1836,7 @@ export default function PassengerDashboardPage() {
 
 
           <p className="
+            hidden sm:block
             text-xs
             text-slate-500
             mb-4
@@ -1856,7 +1861,8 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              🏠 Dashboard
+              <span>🏠<span className="hidden sm:inline">Dashboard</span></span>
+  
             </button>
 
 
@@ -1873,7 +1879,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              🔍 Search & Tracking
+              <span>🔍<span className="hidden sm:inline"> Search & Tracking</span></span>              
             </button>
 
 
@@ -1890,7 +1896,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              🌤️ Weather & ETA Info
+              <span>🌤️<span className="hidden sm:inline"> Weather & ETA Info</span></span>
             </button>
 
 
@@ -1907,7 +1913,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              ⭐ Favourites
+              <span>⭐<span className="hidden sm:inline"> Favourites</span></span>
             </button>
 
 
@@ -1924,7 +1930,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              🧳 Travel History
+              <span>🧳<span className="hidden sm:inline"> Travel History</span></span>
             </button>
 
 
@@ -1941,7 +1947,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              ⭐ Feedback
+              <span>⭐<span className="hidden sm:inline"> Feedback</span></span>
             </button>
 
 
@@ -1958,7 +1964,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              📋 Complaints
+              <span>📋<span className="hidden sm:inline"> Complaints</span></span>
             </button>
 
 
@@ -1975,7 +1981,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              🎒 Lost & Found
+              <span>🎒<span className="hidden sm:inline"> Lost & Found</span></span>
             </button>
 
 
@@ -1992,7 +1998,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              🚨 Emergency Reports
+              <span>🚨<span className="hidden sm:inline"> Emergency Reports</span></span>
             </button>
 
 
@@ -2009,7 +2015,7 @@ export default function PassengerDashboardPage() {
                 hover:bg-blue-50
               "
             >
-              👤 Account Information
+              <span>👤<span className="hidden sm:inline"> Account Information</span></span>
             </button>
 
 
@@ -2950,7 +2956,7 @@ export default function PassengerDashboardPage() {
                 : 'bg-blue-50 border-blue-200 text-blue-800'
             }`}>
               <div className="font-semibold flex items-center gap-2">
-                <span>🌤️ Weather: {eta.weather.condition} ({eta.weather.temp}°C)</span>
+                <span className="hidden sm:inline">🌤️ Weather: {eta.weather.condition} ({eta.weather.temp}°C)</span>
               </div>
               {eta.advisory && <p className="mt-1 text-xs">{eta.advisory}</p>}
             </div>
@@ -3126,7 +3132,7 @@ export default function PassengerDashboardPage() {
           key={stop._id}
           className="flex items-center justify-between text-sm text-slate-700"
           >
-          <span>
+          <span className="hidden sm:inline">
           {stop.name}
           </span>
 
@@ -3765,11 +3771,11 @@ export default function PassengerDashboardPage() {
                     <div className="mt-4 pt-4 border-t border-white/20 text-xs">
                       <span className="font-bold">System Advisory: </span>
                       {localWeather.severity === 'severe' ? (
-                        <span>🚨 Severe weather alert in your area. Transit operations have a 60% delay buffer applied. Please exercise caution.</span>
+                        <span className="hidden sm:inline">🚨 Severe weather alert in your area. Transit operations have a 60% delay buffer applied. Please exercise caution.</span>
                       ) : localWeather.severity === 'moderate' ? (
-                        <span>⚠️ Rain detected. Transit operations have a 25% delay buffer applied. Expect slower travel times.</span>
+                        <span className="hidden sm:inline">⚠️ Rain detected. Transit operations have a 25% delay buffer applied. Expect slower travel times.</span>
                       ) : (
-                        <span>🟢 Clear sky. Operational routes are moving at normal expected speeds. Have a great day!</span>
+                        <span className="hidden sm:inline">🟢 Clear sky. Operational routes are moving at normal expected speeds. Have a great day!</span>
                       )}
                     </div>
                   </div>
