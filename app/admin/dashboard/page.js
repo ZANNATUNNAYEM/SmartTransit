@@ -3527,10 +3527,6 @@ export default function AdminDashboardPage() {
                         Status
                       </th>
 
-                      <th className="px-5 py-4 text-left">
-                        Action
-                      </th>
-
                     </tr>
 
                   </thead>
@@ -3544,7 +3540,7 @@ export default function AdminDashboardPage() {
                     <tr>
 
                       <td
-                        colSpan="5"
+                        colSpan="4"
                         className="p-6 text-center"
                       >
 
@@ -3560,7 +3556,7 @@ export default function AdminDashboardPage() {
                     <tr>
 
                       <td
-                        colSpan="5"
+                        colSpan="4"
                         className="p-6 text-center"
                       >
 
@@ -3622,73 +3618,7 @@ export default function AdminDashboardPage() {
                         </td>
 
 
-                        <td className="px-5 py-4">
 
-
-                          <select
-
-                            value={item.status}
-
-                            onChange={async(e)=>{
-
-
-                              await fetch(
-                                '/api/admin/lost-items',
-                                {
-
-                                  method:'PATCH',
-
-                                  headers:{
-                                    'Content-Type':
-                                    'application/json',
-                                  },
-
-                                  body:
-                                  JSON.stringify({
-
-                                    itemId:
-                                    item._id,
-
-                                    status:
-                                    e.target.value,
-
-                                  }),
-
-                                }
-                              );
-
-
-                              fetchLostItems();
-
-
-                            }}
-
-                            className="
-                              rounded-lg
-                              border
-                              px-3
-                              py-2
-                            "
-
-                          >
-
-                            <option value="reported">
-                              Reported
-                            </option>
-
-                            <option value="found">
-                              Found
-                            </option>
-
-                            <option value="claimed">
-                              Claimed
-                            </option>
-
-
-                          </select>
-
-
-                        </td>
 
 
                       </tr>

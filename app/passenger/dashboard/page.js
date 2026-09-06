@@ -46,6 +46,7 @@ export default function PassengerDashboardPage() {
   const [emergencyReports, setEmergencyReports] = useState([]);
   const [isLoadingEmergencyReports, setIsLoadingEmergencyReports] = useState(false);
   const [lostItems, setLostItems] = useState([]);
+  const [allLostItems, setAllLostItems] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
@@ -288,6 +289,7 @@ export default function PassengerDashboardPage() {
         await loadTravelHistory();
         await loadEmergencyReports();
         await fetchLostItems();
+        await fetchAllLostItems();
         await fetchFeedbacks();
         await loadFrequentDestinations();
         await loadTravelSuggestions();
@@ -618,7 +620,7 @@ export default function PassengerDashboardPage() {
 
       const response =
         await fetch(
-          '/api/passenger/lost-items',
+          '/api/passenger/lost-items?mine=true',
           {
             cache:'no-store',
             credentials:'include',
@@ -654,7 +656,68 @@ export default function PassengerDashboardPage() {
 
   }
 
+  async function fetchAllLostItems() {
+    try {
+      const response = await fetch(
+        '/api/passenger/lost-items',
+        {
+          credentials: 'include',
+        }
+      );
 
+      const data = await response.json();
+
+      if (response.ok) {
+        setAllLostItems(data.reports || []);
+      }
+    } catch (error) {
+      console.error(
+        'All lost items fetch error:',
+        error
+      );
+    }
+  }
+
+  async function updateLostItemStatus(itemId, status) {
+    try {
+      const response = await fetch(
+        '/api/passenger/lost-items',
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            itemId,
+            status,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(
+          data.error ||
+          'Unable to update lost item.'
+        );
+        return;
+      }
+
+      await fetchLostItems();
+      await fetchAllLostItems();
+    } catch (error) {
+      console.error(
+        'Lost item status update error:',
+        error
+      );
+
+      alert(
+        'Something went wrong while updating the lost item.'
+      );
+    }
+  }
 
   async function submitLostItem() {
     const journeyResponse =
@@ -706,7 +769,7 @@ export default function PassengerDashboardPage() {
 
             body:JSON.stringify({
               busId:activeBus,
-              tripId:activeJourney?._id,
+              tripId: activeJourney?.tripId?._id || activeJourney?.tripId,
               description:
                 lostItemDescription,
 
@@ -2544,21 +2607,7 @@ export default function PassengerDashboardPage() {
                             {suggestion.title}
                           </p>
 
-                          <p className="mt-2 text-sm text-slate-600">
-                            {suggestion.description}
-                          </p>
 
-                          <div className="mt-3">
-
-                            <p className="text-xs font-medium text-slate-500">
-                              Recommended because:
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-600">
-                              {suggestion.reason}
-                            </p>
-
-                          </div>
                           {suggestion.score >= 120 && (
                             <span className="mt-3 inline-block rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
                               Highly recommended
@@ -3557,6 +3606,129 @@ export default function PassengerDashboardPage() {
 
               </div>
 
+              <div className="mt-8">
+
+                <h4 className="font-bold text-xl text-slate-900">
+                  Lost & Found Reports
+                </h4>
+
+
+                {isLoadingLostItems ? (
+
+                  <p className="mt-3 text-sm text-xl text-slate-900">
+                    Loading reports...
+                  </p>
+
+                ) : lostItems.length > 0 ? (
+
+                  <div className="mt-4 space-y-3">
+
+                    <div className="mt-4 overflow-x-auto">
+                      <table className="w-full text-sm !text-slate-900">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left !text-slate-900">
+                              Passenger
+                            </th>
+
+                            <th className="px-4 py-3 text-left !text-slate-900">
+                              Email
+                            </th>
+
+                            <th className="px-4 py-3 text-left !text-slate-900">
+                              Lost Item
+                            </th>
+
+                            <th className="px-4 py-3 text-left !text-slate-900">
+                              Status
+                            </th>
+
+                            <th className="px-4 py-3 text-left !text-slate-900">
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {allLostItems.map((item) => (
+                            <tr
+                              key={item._id}
+                              className="border-t border-slate-200"
+                            >
+                              <td className="px-4 py-4 font-medium !text-slate-900">
+                                {item.passengerId?.name || 'Unknown'}
+                              </td>
+
+                              <td className="px-4 py-4 font-medium !text-slate-900">
+                                {item.passengerId?.email || '-'}
+                              </td>
+
+                              <td className="px-4 py-4 font-medium !text-slate-900">
+                                {item.description}
+                              </td>
+
+                              <td className="px-4 py-4 font-medium !text-slate-900">
+                                <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold capitalize">
+                                  {item.status === 'submitted_in_office'
+                                    ? 'Submitted in Office'
+                                    : item.status}
+                                </span>
+                              </td>
+
+                              <td className="px-4 py-4 font-medium !text-slate-900">
+                                <select
+                                  defaultValue=""
+                                  onChange={(event) => {
+                                    const newStatus = event.target.value;
+
+                                    if (!newStatus) {
+                                      return;
+                                    }
+
+                                    updateLostItemStatus(
+                                      item._id,
+                                      newStatus
+                                    );
+
+                                    event.target.value = '';
+                                  }}
+                                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                                >
+                                  <option value="">
+                                    Select Action
+                                  </option>
+
+                                  <option value="found">
+                                    Found
+                                  </option>
+
+                                  <option value="claimed">
+                                    Claimed
+                                  </option>
+
+                                  <option value="submitted_in_office">
+                                    Submitted in Office
+                                  </option>
+                                </select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                  </div>
+
+                ) : (
+
+                  <p className="mt-3 text-sm text-slate-500">
+                    No lost item reports yet.
+                  </p>
+
+                )}
+
+              </div>
+
 
             </article>
           </>
@@ -3966,7 +4138,7 @@ export default function PassengerDashboardPage() {
 
                         <option
                           key={journey._id}
-                          value={journey._id}
+                          value={journey.tripId?._id || journey.tripId}
                         >
 
                           {journey.busId?.busNumber || 'Bus'}
