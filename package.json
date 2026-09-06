@@ -4,8 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "node server.js",
+    "dev:next": "next dev",
     "build": "next build",
     "start": "node server.js",
+    "start:next": "next start",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel",
     "lint": "eslint",
     "seed": "node scripts/seed.mjs",
     "seed:admin": "node scripts/seed-admin.mjs"
@@ -14,7 +18,6 @@
     "bcrypt": "^6.0.0",
     "chart.js": "^4.5.1",
     "cloudinary": "^2.10.0",
-    "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "mongoose": "^9.7.4",
