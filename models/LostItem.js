@@ -22,7 +22,7 @@ const LostItemSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['reported', 'found', 'claimed'],
+      enum: ['reported', 'found', 'claimed', 'submitted_in_office'],
       default: 'reported',
     },
   },

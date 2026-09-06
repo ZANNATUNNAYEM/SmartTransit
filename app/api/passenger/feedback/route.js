@@ -6,6 +6,7 @@ import {
   Feedback,
   User,
   Notification,
+  Trip,
 } from '@/models';
 
 import {
@@ -214,7 +215,22 @@ export async function POST(request) {
         tripId,
 
       });
+    const trip =
+      await Trip.findById(tripId);
 
+    if (!trip) {
+
+      return NextResponse.json(
+        {
+          error:
+            'Trip not found. Please select a valid trip.',
+        },
+        {
+          status: 404,
+        }
+      );
+
+    }
 
 
     if(existingFeedback){

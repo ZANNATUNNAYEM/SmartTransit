@@ -1243,14 +1243,17 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans antialiased selection:bg-blue-500 selection:text-white">
       
       {/* LEFT SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0 print:hidden">
+      <aside className="w-20 sm:w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0 print:hidden">
         <div>
           {/* Logo Brand Header */}
-          <div className="px-6 py-6 border-b border-slate-100">
-            <div className="flex items-center space-x-2">
-              <span className="text-2xl font-extrabold text-blue-600 tracking-tight">SmartTransit</span>
+          <div className="px-3 py-6 sm:px-6 border-b border-slate-100">
+            <div className="flex items-center justify-center sm:justify-start space-x-2">
+              <span className="text-2xl font-extrabold text-blue-600 tracking-tight">
+                <span className="sm:hidden">S</span>
+                <span className="hidden sm:inline">SmartTransit</span>
+              </span>
             </div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Admin Console</p>
+            <p className="hidden sm:block text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Admin Console</p>
           </div>
 
           {/* Navigation Links */}
@@ -1300,7 +1303,7 @@ export default function AdminDashboardPage() {
                 <button
                   key={tab.name}
                   onClick={() => setActiveTab(tab.name)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm text-left transition-all duration-150 ${
+                  className={`w-full flex items-center justify-center sm:justify-start space-x-0 sm:space-x-3 px-2 sm:px-4 py-3 rounded-xl font-semibold text-sm text-left transition-all duration-150 ${
                     isActive
                       ? 'bg-blue-50 text-blue-600 shadow-sm shadow-blue-500/5'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
@@ -1313,7 +1316,7 @@ export default function AdminDashboardPage() {
                   ) : (
                     <span className="text-base w-5 h-5 flex items-center justify-center">{tab.icon}</span>
                   )}
-                  <span>{tab.name}</span>
+                  <span className="hidden sm:inline">{tab.name}</span>
                 </button>
               );
             })}
@@ -1327,7 +1330,7 @@ export default function AdminDashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span>Settings</span>
+            <span className="hidden sm:inline">Settings</span>
           </button>
           
           <button
@@ -1338,7 +1341,7 @@ export default function AdminDashboardPage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span>{isLoggingOut ? 'Logging Out...' : 'Logout'}</span>
+            <span className="hidden sm:inline">{isLoggingOut ? 'Logging Out...' : 'Logout'}</span>
           </button>
         </div>
       </aside>
@@ -1725,8 +1728,8 @@ export default function AdminDashboardPage() {
                     onClick={() => setActiveTab('Complaints Management')}
                     className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1"
                   >
-                    <span>View All Complaints</span>
-                    <span>→</span>
+                    <span className="hidden sm:inline">View All Complaints</span>
+                    <span className="hidden sm:inline">→</span>
                   </button>
                 </div>
 
@@ -1907,7 +1910,7 @@ export default function AdminDashboardPage() {
                   onClick={() => setShowAddBusModal(true)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-sm font-bold transition-all duration-150 flex items-center space-x-2 shadow-lg shadow-blue-500/10 hover:shadow-blue-600/15"
                 >
-                  <span>+ Add New Bus</span>
+                  <span className="hidden sm:inline">+ Add New Bus</span>
                 </button>
               </div>
 
@@ -2429,7 +2432,7 @@ export default function AdminDashboardPage() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                     </svg>
-                    <span>Export PDF Report</span>
+                    <span className="hidden sm:inline">Export PDF Report</span>
                   </button>
                 </div>
               </div>
@@ -2988,9 +2991,9 @@ export default function AdminDashboardPage() {
                                 <div className={`${rateBg} h-full rounded-full transition-all duration-300`} style={{ width: `${rate}%` }}></div>
                               </div>
                               <div className="flex justify-between text-[10px] font-semibold text-slate-500">
-                                <span>Completed: <strong className="text-slate-700">{bus.completedTrips}</strong></span>
-                                <span>Cancelled: <strong className="text-slate-700">{bus.cancelledTrips}</strong></span>
-                                <span>Total: <strong className="text-slate-700">{bus.totalTrips}</strong></span>
+                                <span className="hidden sm:inline">Completed: <strong className="text-slate-700">{bus.completedTrips}</strong></span>
+                                <span className="hidden sm:inline">Cancelled: <strong className="text-slate-700">{bus.cancelledTrips}</strong></span>
+                                <span className="hidden sm:inline">Total: <strong className="text-slate-700">{bus.totalTrips}</strong></span>
                               </div>
                             </div>
                           );
@@ -3064,7 +3067,7 @@ export default function AdminDashboardPage() {
 
 
           <td>
-          <span>
+          <span className="hidden sm:inline">
           {report.status}
           </span>
           </td>
@@ -3527,10 +3530,6 @@ export default function AdminDashboardPage() {
                         Status
                       </th>
 
-                      <th className="px-5 py-4 text-left">
-                        Action
-                      </th>
-
                     </tr>
 
                   </thead>
@@ -3544,7 +3543,7 @@ export default function AdminDashboardPage() {
                     <tr>
 
                       <td
-                        colSpan="5"
+                        colSpan="4"
                         className="p-6 text-center"
                       >
 
@@ -3560,7 +3559,7 @@ export default function AdminDashboardPage() {
                     <tr>
 
                       <td
-                        colSpan="5"
+                        colSpan="4"
                         className="p-6 text-center"
                       >
 
@@ -3622,73 +3621,7 @@ export default function AdminDashboardPage() {
                         </td>
 
 
-                        <td className="px-5 py-4">
 
-
-                          <select
-
-                            value={item.status}
-
-                            onChange={async(e)=>{
-
-
-                              await fetch(
-                                '/api/admin/lost-items',
-                                {
-
-                                  method:'PATCH',
-
-                                  headers:{
-                                    'Content-Type':
-                                    'application/json',
-                                  },
-
-                                  body:
-                                  JSON.stringify({
-
-                                    itemId:
-                                    item._id,
-
-                                    status:
-                                    e.target.value,
-
-                                  }),
-
-                                }
-                              );
-
-
-                              fetchLostItems();
-
-
-                            }}
-
-                            className="
-                              rounded-lg
-                              border
-                              px-3
-                              py-2
-                            "
-
-                          >
-
-                            <option value="reported">
-                              Reported
-                            </option>
-
-                            <option value="found">
-                              Found
-                            </option>
-
-                            <option value="claimed">
-                              Claimed
-                            </option>
-
-
-                          </select>
-
-
-                        </td>
 
 
                       </tr>
@@ -3801,7 +3734,7 @@ export default function AdminDashboardPage() {
 
                               {c.relatedRouteId && (
                                 <div className="mt-2 flex items-center space-x-2 text-xs text-slate-500">
-                                  <span>🗺️ Related Route: <strong>{c.relatedRouteId.name}</strong></span>
+                                  <span className="hidden sm:inline">🗺️ Related Route: <strong>{c.relatedRouteId.name}</strong></span>
                                 </div>
                               )}
 
@@ -3999,8 +3932,8 @@ export default function AdminDashboardPage() {
                         <div key={r.routeId} className="p-4 rounded-xl border border-slate-100 bg-slate-50">
                           <h3 className="font-bold text-slate-800">{r.routeName}</h3>
                           <div className="flex justify-between text-xs text-slate-500 mt-1">
-                            <span>Avg Delay: <strong>{r.averageDelayMinutes}m</strong></span>
-                            <span>Delayed Trips: <strong>{r.delayedTripsCount}/{r.totalTrips}</strong></span>
+                            <span className="hidden sm:inline">Avg Delay: <strong>{r.averageDelayMinutes}m</strong></span>
+                            <span className="hidden sm:inline">Delayed Trips: <strong>{r.delayedTripsCount}/{r.totalTrips}</strong></span>
                           </div>
                           <p className="text-xs text-amber-800 mt-2 bg-amber-50 p-2.5 rounded-lg border border-amber-100">
                             {r.recommendation}
@@ -4020,8 +3953,8 @@ export default function AdminDashboardPage() {
                         <div key={b.busId} className="p-4 rounded-xl border border-slate-100 bg-slate-50">
                           <h3 className="font-bold text-slate-800">Bus {b.busNumber}</h3>
                           <div className="flex justify-between text-xs text-slate-500 mt-1">
-                            <span>Peak Load: <strong>{b.loadPercentage}%</strong></span>
-                            <span>Count: <strong>{b.peakPassengerCount}/{b.capacity}</strong></span>
+                            <span className="hidden sm:inline">Peak Load: <strong>{b.loadPercentage}%</strong></span>
+                            <span className="hidden sm:inline">Count: <strong>{b.peakPassengerCount}/{b.capacity}</strong></span>
                           </div>
                           <p className="text-xs text-red-800 mt-2 bg-red-50 p-2.5 rounded-lg border border-red-100">
                             {b.recommendation}
@@ -4041,8 +3974,8 @@ export default function AdminDashboardPage() {
                         <div key={s.scheduleId} className="p-4 rounded-xl border border-slate-100 bg-slate-50">
                           <h3 className="font-bold text-slate-800">{s.routeName} ({s.departureTime})</h3>
                           <div className="flex justify-between text-xs text-slate-500 mt-1">
-                            <span>Avg Load: <strong>{s.avgLoadPercentage}%</strong></span>
-                            <span>Bus: <strong>{s.busNumber}</strong></span>
+                            <span className="hidden sm:inline">Avg Load: <strong>{s.avgLoadPercentage}%</strong></span>
+                            <span className="hidden sm:inline">Bus: <strong>{s.busNumber}</strong></span>
                           </div>
                           <p className="text-xs text-blue-800 mt-2 bg-blue-50 p-2.5 rounded-lg border border-blue-100">
                             {s.recommendation}
@@ -4703,7 +4636,7 @@ export default function AdminDashboardPage() {
                           setRouteForm(prev => ({ ...prev, stops: updatedStops }));
                         }}
                       />
-                      <span>{stop.name}</span>
+                      <span className="hidden sm:inline">{stop.name}</span>
                     </label>
                   ))}
                 </div>

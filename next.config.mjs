@@ -1,20 +1,15 @@
 /** @type {import('next').NextConfig} */
 
-const cloudinaryCloudName =
-  process.env.CLOUDINARY_CLOUD_NAME;
-
 const nextConfig = {
+  allowedDevOrigins: ['192.168.0.184', 'localhost:3000'],
   images: {
-    remotePatterns: cloudinaryCloudName
-      ? [
-          {
-            protocol: 'https',
-            hostname: 'res.cloudinary.com',
-            port: '',
-            pathname: `/${cloudinaryCloudName}/image/upload/**`,
-          },
-        ]
-      : [],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+    ],
   },
 };
 

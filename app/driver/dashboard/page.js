@@ -1933,12 +1933,28 @@ export default function DriverDashboardPage() {
                 <div className="rounded-lg bg-slate-100 p-4">
 
                   <p className="text-slate-500">
-                    Rating
+                    Passenger Rating
                   </p>
 
                   <p className="text-xl font-bold text-emerald-700">
+                    {performanceReport.averagePassengerRating > 0
+                      ? `${performanceReport.averagePassengerRating} / 5`
+                      : 'No ratings yet'}
+                  </p>
+
+                  <p className="mt-1 text-sm font-semibold text-slate-600">
                     {performanceReport.rating}
                   </p>
+
+                  {performanceReport.totalPassengerRatings > 0 && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Based on {performanceReport.totalPassengerRatings}{' '}
+                      passenger rating
+                      {performanceReport.totalPassengerRatings !== 1
+                        ? 's'
+                        : ''}
+                    </p>
+                  )}
 
                 </div>
 
@@ -2123,11 +2139,11 @@ export default function DriverDashboardPage() {
                 <div className="mt-4 pt-4 border-t border-white/20 text-xs">
                   <span className="font-bold">System Advisory: </span>
                   {localWeather.severity === 'severe' ? (
-                    <span>🚨 Severe weather alert in effect. A 60% delay buffer is being broadcasted to all passenger arrival screens. Drive safely.</span>
+                    <span className="hidden sm:inline">🚨 Severe weather alert in effect. A 60% delay buffer is being broadcasted to all passenger arrival screens. Drive safely.</span>
                   ) : localWeather.severity === 'moderate' ? (
-                    <span>⚠️ Rain detected. A 25% delay buffer is currently active. Drive with extra caution on wet roads.</span>
+                    <span className="hidden sm:inline">⚠️ Rain detected. A 25% delay buffer is currently active. Drive with extra caution on wet roads.</span>
                   ) : (
-                    <span>🟢 Clear weather condition. Transit schedules are active and running under standard timetables.</span>
+                    <span className="hidden sm:inline">🟢 Clear weather condition. Transit schedules are active and running under standard timetables.</span>
                   )}
                 </div>
               </div>
