@@ -2024,12 +2024,13 @@ export default function PassengerDashboardPage() {
 
         </aside>
 
+        
         <div className="flex-1">
           <header className="border-b bg-white shadow-sm">
 
             <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-6 py-5">
 
-
+              {/*Header*/}
               <div>
 
                 <h1 className="text-2xl font-bold text-blue-700">
@@ -2070,7 +2071,7 @@ export default function PassengerDashboardPage() {
                   )}
                 </button>
 
-
+                {/*Notifications Dropdown*/}
                 {showNotifications && (
 
                   <div className="absolute right-0 z-50 mt-3 w-80 rounded-xl border border-slate-200 bg-white shadow-xl">
@@ -2235,10 +2236,11 @@ export default function PassengerDashboardPage() {
 
 
 
-
+          {/*Dasboard Page*/}          
           {activeMenu === "dashboard" && (
           <section className="mx-auto w-full max-w-screen-2xl px-6 py-10">
 
+            {/*Welcome Banner*/}
             <div className="flex flex-col items-center gap-6 rounded-2xl bg-gradient-to-r from-blue-700 to-blue-500 p-8 text-center text-white shadow-lg sm:flex-row sm:text-left">
 
 
@@ -2286,9 +2288,10 @@ export default function PassengerDashboardPage() {
 
 
             </div>
-
+            {/*Dashboard Content*/}
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-start">
-
+              
+              {/* Nearby Bus Stops */}
               <article className="rounded-2xl bg-white p-6 shadow-sm">
 
                 <h3 className="text-lg font-bold text-slate-900">
@@ -2341,309 +2344,297 @@ export default function PassengerDashboardPage() {
 
               </article>
 
+              {/* Report Emergency */}
+              <article className="rounded-2xl bg-white p-6 shadow-sm">
 
+                <div className="flex items-center justify-between">
 
+                  <div>
 
+                    <h3 className="text-xl font-bold text-slate-900">
+                      🚨 Report Emergency
+                    </h3>
 
+                    <p className="text-sm text-slate-700 mt-1">
+                      Report accidents, medical emergencies, harassment, or suspicious activities.
+                    </p>
 
-            {/* Report Emergency */}
-            <article className="rounded-2xl bg-white p-6 shadow-sm">
-
-              <div className="flex items-center justify-between">
-
-                <div>
-
-                  <h3 className="text-xl font-bold text-slate-900">
-                    🚨 Report Emergency
-                  </h3>
-
-                  <p className="text-sm text-slate-700 mt-1">
-                    Report accidents, medical emergencies, harassment, or suspicious activities.
-                  </p>
-
-                </div>
-
-
-                <button
-                  onClick={() =>
-                    setShowEmergencyForm(!showEmergencyForm)
-                  }
-                  className="
-                    rounded-xl
-                    bg-red-600
-                    px-5
-                    py-2
-                    text-white
-                    font-semibold
-                  "
-                >
-                  {showEmergencyForm ? 'Close' : 'Report'}
-                </button>
-
-              </div>
-
-
-              {showEmergencyForm && (
-
-                <div className="mt-6 space-y-4">
-
-
-                  <select
-
-                    value={emergencyForm.category}
-
-                    onChange={(e)=>
-                      setEmergencyForm(prev=>({
-                        ...prev,
-                        category:e.target.value
-                      }))
-                    }
-
-                    className="
-                      w-full
-                      rounded-xl
-                      border-slate-300
-                      p-3
-                      text-slate-900
-                      bg-white
-                    "
-
-                  >
-
-                    <option>
-                      Medical Emergency
-                    </option>
-
-                    <option>
-                      Accident
-                    </option>
-
-                    <option>
-                      Harassment
-                    </option>
-
-                    <option>
-                      Suspicious Activity
-                    </option>
-
-                  </select>
-
-
-
-                  <textarea
-
-                    value={emergencyForm.description}
-
-                    onChange={(e)=>
-                      setEmergencyForm(prev=>({
-                        ...prev,
-                        description:e.target.value
-                      }))
-                    }
-
-                    placeholder="Describe the emergency..."
-
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-slate-300
-                      p-3
-                      min-h-32
-                      text-slate-900
-                      placeholder:text-slate-500
-                    "
-
-                  />
-
+                  </div>
 
 
                   <button
-
-                    disabled={submittingEmergency}
-
-                    onClick={submitEmergencyReport}
-
+                    onClick={() =>
+                      setShowEmergencyForm(!showEmergencyForm)
+                    }
                     className="
-                      w-full
                       rounded-xl
                       bg-red-600
-                      py-3
+                      px-5
+                      py-2
                       text-white
-                      font-bold
+                      font-semibold
                     "
-
                   >
-
-                    {submittingEmergency
-                      ? 'Submitting...'
-                      : 'Submit Emergency Report'
-                    }
-
+                    {showEmergencyForm ? 'Close' : 'Report'}
                   </button>
 
-
-
-                  {emergencyMessage && (
-
-                    <p className="text-sm font-semibold text-green-700">
-
-                      {emergencyMessage}
-
-                    </p>
-
-                  )}
-
-
                 </div>
 
-              )}
 
-            </article>
+                {showEmergencyForm && (
 
-
-            
-
-            
+                  <div className="mt-6 space-y-4">
 
 
+                    <select
 
-            
-            {/*Frequently Visited Destinations*/}
-            <article className="rounded-2xl bg-white p-6 shadow-sm">
+                      value={emergencyForm.category}
 
-              <h3 className="text-xl font-bold text-slate-900">
-                📍 Frequently Visited Destinations
-              </h3>
+                      onChange={(e)=>
+                        setEmergencyForm(prev=>({
+                          ...prev,
+                          category:e.target.value
+                        }))
+                      }
 
-              {isLoadingFrequentDestinations ? (
+                      className="
+                        w-full
+                        rounded-xl
+                        border-slate-300
+                        p-3
+                        text-slate-900
+                        bg-white
+                      "
 
-                <p className="mt-4 text-sm text-slate-500">
-                  Loading destinations...
-                </p>
-
-              ) : frequentDestinations.length > 0 ? (
-
-                <div className="mt-5 space-y-3">
-
-                  {frequentDestinations.map(
-                    (destination) => (
-
-                      <div
-                        key={destination.stopId}
-                        className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
-                      >
-
-                        <div>
-
-                          <p className="font-semibold text-slate-900">
-                            📍 {destination.name}
-                          </p>
-
-                          <p className="mt-1 text-sm text-slate-500">
-                            Frequently visited destination
-                          </p>
-
-                        </div>
-
-                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                          {destination.visitCount}{' '}
-                          {destination.visitCount === 1
-                            ? 'visit'
-                            : 'visits'}
-                        </span>
-
-                      </div>
-
-                    )
-                  )}
-
-                </div>
-
-              ) : (
-
-                <p className="mt-4 text-sm text-slate-500">
-                  No frequently visited destinations yet.
-                </p>
-
-              )}
-
-            </article>
-            
-            {/*Recommended for You*/}
-            <article className="rounded-2xl bg-white p-6 shadow-sm">
-
-              <h3 className="text-xl font-bold text-slate-900">
-                💡 Recommended for You
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-600">
-                Personalized travel suggestions based on your previous journeys and saved preferences.
-              </p>
-
-              {isLoadingTravelSuggestions ? (
-
-                <p className="mt-4 text-sm text-slate-500">
-                  Finding recommendations...
-                </p>
-
-              ) : travelSuggestions.length > 0 ? (
-
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-
-                  {travelSuggestions.map((suggestion) => (
-
-                    <div
-                      key={`${suggestion.type}-${suggestion.routeId || suggestion.stopId}`}
-                      className="rounded-xl border border-slate-200 p-4"
                     >
 
-                      <div className="flex items-start justify-between gap-3">
+                      <option>
+                        Medical Emergency
+                      </option>
 
-                        <div>
+                      <option>
+                        Accident
+                      </option>
 
-                          <p className="font-semibold text-slate-900">
-                            {suggestion.type === 'recent-route'
-                              ? '🚌'
-                              : suggestion.type === 'frequent-destination'
-                              ? '📍'
-                              : suggestion.type === 'favorite-route'
-                              ? '⭐'
-                              : '🚏'}{' '}
-                            {suggestion.title}
-                          </p>
+                      <option>
+                        Harassment
+                      </option>
+
+                      <option>
+                        Suspicious Activity
+                      </option>
+
+                    </select>
 
 
-                          {suggestion.score >= 120 && (
-                            <span className="mt-3 inline-block rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
-                              Highly recommended
-                            </span>
-                          )}
+
+                    <textarea
+
+                      value={emergencyForm.description}
+
+                      onChange={(e)=>
+                        setEmergencyForm(prev=>({
+                          ...prev,
+                          description:e.target.value
+                        }))
+                      }
+
+                      placeholder="Describe the emergency..."
+
+                      className="
+                        w-full
+                        rounded-xl
+                        border
+                        border-slate-300
+                        p-3
+                        min-h-32
+                        text-slate-900
+                        placeholder:text-slate-500
+                      "
+
+                    />
+
+
+
+                    <button
+
+                      disabled={submittingEmergency}
+
+                      onClick={submitEmergencyReport}
+
+                      className="
+                        w-full
+                        rounded-xl
+                        bg-red-600
+                        py-3
+                        text-white
+                        font-bold
+                      "
+
+                    >
+
+                      {submittingEmergency
+                        ? 'Submitting...'
+                        : 'Submit Emergency Report'
+                      }
+
+                    </button>
+
+
+
+                    {emergencyMessage && (
+
+                      <p className="text-sm font-semibold text-green-700">
+
+                        {emergencyMessage}
+
+                      </p>
+
+                    )}
+
+
+                  </div>
+
+                )}
+
+              </article>
+
+              {/*Frequently Visited Destinations*/}
+              <article className="rounded-2xl bg-white p-6 shadow-sm">
+
+                <h3 className="text-xl font-bold text-slate-900">
+                  📍 Frequently Visited Destinations
+                </h3>
+
+                {isLoadingFrequentDestinations ? (
+
+                  <p className="mt-4 text-sm text-slate-500">
+                    Loading destinations...
+                  </p>
+
+                ) : frequentDestinations.length > 0 ? (
+
+                  <div className="mt-5 space-y-3">
+
+                    {frequentDestinations.map(
+                      (destination) => (
+
+                        <div
+                          key={destination.stopId}
+                          className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
+                        >
+
+                          <div>
+
+                            <p className="font-semibold text-slate-900">
+                              📍 {destination.name}
+                            </p>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                              Frequently visited destination
+                            </p>
+
+                          </div>
+
+                          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                            {destination.visitCount}{' '}
+                            {destination.visitCount === 1
+                              ? 'visit'
+                              : 'visits'}
+                          </span>
+
+                        </div>
+
+                      )
+                    )}
+
+                  </div>
+
+                ) : (
+
+                  <p className="mt-4 text-sm text-slate-500">
+                    No frequently visited destinations yet.
+                  </p>
+
+                )}
+
+              </article>
+              
+              {/*Recommended for You*/}
+              <article className="rounded-2xl bg-white p-6 shadow-sm">
+
+                <h3 className="text-xl font-bold text-slate-900">
+                  💡 Recommended for You
+                </h3>
+
+                <p className="mt-2 text-sm text-slate-600">
+                  Personalized travel suggestions based on your previous journeys and saved preferences.
+                </p>
+
+                {isLoadingTravelSuggestions ? (
+
+                  <p className="mt-4 text-sm text-slate-500">
+                    Finding recommendations...
+                  </p>
+
+                ) : travelSuggestions.length > 0 ? (
+
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+
+                    {travelSuggestions.map((suggestion) => (
+
+                      <div
+                        key={`${suggestion.type}-${suggestion.routeId || suggestion.stopId}`}
+                        className="rounded-xl border border-slate-200 p-4"
+                      >
+
+                        <div className="flex items-start justify-between gap-3">
+
+                          <div>
+
+                            <p className="font-semibold text-slate-900">
+                              {suggestion.type === 'recent-route'
+                                ? '🚌'
+                                : suggestion.type === 'frequent-destination'
+                                ? '📍'
+                                : suggestion.type === 'favorite-route'
+                                ? '⭐'
+                                : '🚏'}{' '}
+                              {suggestion.title}
+                            </p>
+
+
+                            {suggestion.score >= 120 && (
+                              <span className="mt-3 inline-block rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+                                Highly recommended
+                              </span>
+                            )}
+
+                          </div>
 
                         </div>
 
                       </div>
 
-                    </div>
+                    ))}
 
-                  ))}
+                  </div>
 
-                </div>
+                ) : (
 
-              ) : (
+                  <p className="mt-4 text-sm text-slate-500">
+                    No travel suggestions available yet.
+                  </p>
 
-                <p className="mt-4 text-sm text-slate-500">
-                  No travel suggestions available yet.
-                </p>
+                )}
 
-              )}
-
-            </article>
-
-          </div>
+              </article>
+            </div>
+          
           </section>
           )}
 
+          {/*Favourite routes & stops Page*/}
           {activeMenu === "favourites" && (
           <>
             {/*Favourite routes & stops*/}    
@@ -2652,6 +2643,8 @@ export default function PassengerDashboardPage() {
               <h3 className="text-lg font-bold text-slate-900">
                 Favourite routes & stops
               </h3>
+
+              {/*Saved Routes*/}
               <div className="mt-5">
                 <h4 className="font-semibold text-slate-700">
                   🛣 Saved Routes
@@ -2723,7 +2716,8 @@ export default function PassengerDashboardPage() {
                 )}
 
               </div>
-
+              
+              {/*Saved Stops*/}
               <div className="mt-6">
 
                 <h4 className="font-semibold text-slate-700">
@@ -2792,10 +2786,12 @@ export default function PassengerDashboardPage() {
                 )}
 
               </div>
+
             </article>
           </>
           )}
-
+          
+          {/*Search Page*/}  
           {activeMenu === "search" && (
           <>
             <article className="rounded-2xl bg-white p-6 shadow-sm">
@@ -3242,6 +3238,8 @@ export default function PassengerDashboardPage() {
           )}
           </>
           )}
+
+          {/*History Page*/}  
           {activeMenu === "history" && (
           <>
             {/* Active Journey*/}
@@ -3433,6 +3431,7 @@ export default function PassengerDashboardPage() {
           </>
           )}
 
+          {/*Lost and Found Page*/}  
           {activeMenu === "lost" && (
           <>
             {/* Lost and Found */}
@@ -3740,6 +3739,7 @@ export default function PassengerDashboardPage() {
           </>
           )}
 
+          {/*Weather Page*/}  
           {activeMenu === "weather" && (
           <>
             {/* Weather-aware ETA & Advisories */}
@@ -3936,6 +3936,7 @@ export default function PassengerDashboardPage() {
           </>
           )}
 
+          {/*Complaints Page*/}  
           {activeMenu === "complaints" && (
           <>
             {/* Complaints Resolution */}
@@ -4060,6 +4061,7 @@ export default function PassengerDashboardPage() {
           </>
           )}
 
+          {/*Feedback Page*/} 
           {activeMenu === "feedback" && (
           <>
             {/* Feedback and Ratings */}
@@ -4368,6 +4370,7 @@ export default function PassengerDashboardPage() {
           </>
           )}  
 
+          {/*Emergency Page*/} 
           {activeMenu === "emergency" && (
           <>  
             {/* Emergency Reports */}
@@ -4464,6 +4467,7 @@ export default function PassengerDashboardPage() {
           </>
           )}     
 
+          {/*Account Page*/}
           {activeMenu === "account" && (
           <article className="rounded-2xl bg-white p-6 shadow-sm">
 
